@@ -410,7 +410,7 @@ function renderEndpointDetails() {
                 }</p>
                 ${
                   content && content.schema
-                    ? `<div class="bg-[#0b0c0e] rounded-lg p-4 overflow-x-auto">
+                    ? `<div class="bg-[#000000] rounded-lg p-4 overflow-x-auto">
                         <h4 class="text-sm font-semibold text-white mb-3">Response Schema</h4>
                         <div class="schema-tree-view text-sm">
                           ${renderSchemaTreeView(
@@ -884,7 +884,14 @@ function checkForNestedProperties(schema) {
       refSchema = refSchema[path];
       if (!refSchema) break;
     }
-    return refSchema ? checkForNestedProperties(refSchema) : false;
+    if (refSchema) {
+      // For single schemas in allOf, check the actual schema
+      if (refSchema.allOf && refSchema.allOf.length === 1) {
+        return checkForNestedProperties(refSchema.allOf[0]);
+      }
+      return checkForNestedProperties(refSchema);
+    }
+    return false;
   }
 
   // Direct nested properties
@@ -916,6 +923,10 @@ function checkForNestedProperties(schema) {
   }
 
   if (schema.allOf && Array.isArray(schema.allOf) && schema.allOf.length > 0) {
+    // If only one schema in allOf, check it directly
+    if (schema.allOf.length === 1) {
+      return checkForNestedProperties(schema.allOf[0]);
+    }
     return schema.allOf.some((subSchema) =>
       checkForNestedProperties(subSchema)
     );
@@ -955,14 +966,24 @@ function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
       if (!refSchema) break;
     }
     if (refSchema) {
+      // For single schemas in allOf, render directly
+      if (refSchema.allOf && refSchema.allOf.length === 1) {
+        return renderSchemaTreeView(refSchema.allOf[0], depth, propertyId);
+      }
       return renderSchemaTreeView(refSchema, depth, propertyId);
     } else {
       return `<div class="text-red-400">Could not resolve reference: ${schema.$ref}</div>`;
     }
   }
 
-  // Handle allOf - merge all schemas
+  // Handle allOf - merge all schemas or show single schema directly
   if (schema.allOf && Array.isArray(schema.allOf)) {
+    // If only one schema in allOf, render it directly
+    if (schema.allOf.length === 1) {
+      return renderSchemaTreeView(schema.allOf[0], depth, propertyId);
+    }
+
+    // Otherwise merge all schemas
     const merged = { properties: {}, required: [] };
 
     schema.allOf.forEach((subSchema) => {
@@ -1184,48 +1205,15 @@ function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
       // Nested properties (initially hidden)
       if (hasNestedProperties) {
         html += `<div id="${currentId}" class="nested-properties" style="display: none;">`;
-        if (prop.type === "object" || prop.properties) {
+        if (prop.type === "object" || prop.properties || prop.$ref) {
           html += renderSchemaTreeView(prop, depth + 1, currentId);
         } else if (prop.type === "array" && prop.items) {
-          // Show array items with proper tree structure
-          const itemsId = `${currentId}_items`;
-          const itemsHasNested = checkForNestedProperties(prop.items);
-
-          html += `<div class="schema-row" data-level="${
-            depth + 1
-          }" style="margin-left: ${(depth + 1) * 24}px;">
-            <div class="border-line"></div>
-            <div class="schema-content">
-              <div class="property-main-row">`;
-
-          // Add expand button if items have nested properties
-          if (itemsHasNested) {
-            html += `<div class="expand-button" onclick="toggleSchemaProperty('${itemsId}')" role="button">
-              <svg class="chevron-icon" viewBox="0 0 320 512">
-                <path fill="currentColor" d="M96 480c-8.188 0-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L242.8 256L73.38 86.63c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l192 192c12.5 12.5 12.5 32.75 0 45.25l-192 192C112.4 476.9 104.2 480 96 480z"></path>
-              </svg>
-            </div>`;
-          } else {
-            html += `<div class="expand-button-spacer"></div>`;
-          }
-
-          html += `<div class="property-info">
-                  <div class="property-name">items</div>
-                  <span class="property-type">${getSchemaType(
-                    prop.items
-                  )}</span>
-                </div>
-              </div>
-              <div class="property-description">Array item type</div>
-            </div>
-          </div>`;
-
-          // Add nested content if exists
-          if (itemsHasNested) {
-            html += `<div id="${itemsId}" class="nested-properties" style="display: none;">`;
-            html += renderSchemaTreeView(prop.items, depth + 2, itemsId);
-            html += `</div>`;
-          }
+          // Show array items directly without extra "items" wrapper
+          html += renderSchemaTreeView(
+            prop.items,
+            depth + 1,
+            `${currentId}_items`
+          );
         } else if (
           prop.anyOf &&
           Array.isArray(prop.anyOf) &&
@@ -1412,6 +1400,24 @@ function switchAnyOfOption(propertyId, selectedIndex) {
 function getSchemaType(schema) {
   if (!schema) return "unknown";
 
+  // Handle $ref by resolving it first
+  if (schema.$ref) {
+    const refPath = schema.$ref.replace("#/", "").split("/");
+    let refSchema = swaggerData;
+    for (const path of refPath) {
+      refSchema = refSchema[path];
+      if (!refSchema) break;
+    }
+    if (refSchema) {
+      // For single schemas in allOf, get the actual type
+      if (refSchema.allOf && refSchema.allOf.length === 1) {
+        return getSchemaType(refSchema.allOf[0]);
+      }
+      return getSchemaType(refSchema);
+    }
+    return "object"; // Default for unresolved refs
+  }
+
   if (schema.type) {
     if (schema.type === "array" && schema.items) {
       return `array[${getSchemaType(schema.items)}]`;
@@ -1423,8 +1429,13 @@ function getSchemaType(schema) {
   if (schema.items) return "array";
   if (schema.anyOf) return `anyOf[${schema.anyOf.length}]`;
   if (schema.oneOf) return `oneOf[${schema.oneOf.length}]`;
-  if (schema.allOf) return `allOf[${schema.allOf.length}]`;
-  if (schema.$ref) return "reference";
+  if (schema.allOf) {
+    // For single schema in allOf, return the actual type
+    if (schema.allOf.length === 1) {
+      return getSchemaType(schema.allOf[0]);
+    }
+    return `allOf[${schema.allOf.length}]`;
+  }
 
   return "unknown";
 }

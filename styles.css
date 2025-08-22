@@ -433,7 +433,7 @@ textarea:focus {
   line-height: 1.6;
   font-family: "Roboto", sans-serif;
   position: relative;
-  background-color: #0b0c0e;
+  background-color: #000000 !important;
   border-radius: 8px;
   padding: 16px;
 }
