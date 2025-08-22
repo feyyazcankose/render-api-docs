@@ -374,7 +374,7 @@ function renderEndpointDetails() {
               </tr>
               <tr>
                 <td class="text-gray-400-custom pt-2 pb-4" colspan="3">
-                  <p>${param.description || "No description available"}</p>
+                  <p>${param.description || ""}</p>
                   ${
                     param.schema?.example
                       ? `<p class="mt-2">Example: <code class="available-option">${param.schema.example}</code></p>`
@@ -488,7 +488,7 @@ function renderEndpointDetails() {
               </div>
               <div class="p-4 space-y-4 accordion-content" style="display: none">
                 <p class="text-sm text-gray-400-custom">${
-                  response.description || "No description available"
+                  response.description || ""
                 }</p>
                 ${
                   content && content.schema
@@ -552,7 +552,7 @@ function renderEndpointDetails() {
               title="Copy endpoint name">content_copy</span>
       </div>
       <p class="text-gray-400-custom">
-        ${endpoint.description || "No description available"}
+        ${endpoint.description || ""}
       </p>
     </header>
     <div class="api-endpoint">
@@ -683,49 +683,98 @@ function renderEndpointDetails() {
  * @returns {string} - Authorization HTML
  */
 function getAuthorizationHtml() {
-  if (!swaggerData.components || !swaggerData.components.securitySchemes)
+  if (
+    !swaggerData.components ||
+    !swaggerData.components.securitySchemes ||
+    !currentEndpoint
+  )
     return "";
+
+  // Get the security requirements for the current endpoint
+  const endpointSecurity = currentEndpoint.data.security;
+
+  // If endpoint has no security requirements, don't show authorization section
+  if (!endpointSecurity || endpointSecurity.length === 0) {
+    return "";
+  }
 
   const schemes = swaggerData.components.securitySchemes;
   let authHtml = "";
 
-  Object.keys(schemes).forEach((schemeName) => {
-    const scheme = schemes[schemeName];
-    if (scheme.type === "http" && scheme.scheme === "bearer") {
-      authHtml += `
-        <section class="mb-8">
-          <h2 class="section-title">Authorization</h2>
-          <table class="param-table">
-            <tbody>
-              <tr>
-                <td>
-                  <div class="param-name">Authorization</div>
-                </td>
-                <td>
-                  <div class="param-type">string</div>
-                </td>
-                <td>
-                  <div class="param-type">header</div>
-                </td>
-                <td>
-                  <span class="required">required</span>
-                </td>
-              </tr>
-              <tr>
-                <td class="text-gray-400-custom pt-2 pb-4" colspan="4">
-                  ${
-                    scheme.description ||
-                    "Bearer authentication header of the form"
-                  } 
-                  <code class="available-option">Bearer &lt;token&gt;</code> where 
-                  <code class="available-option">&lt;token&gt;</code> is your auth token.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-      `;
-    }
+  // Only show authorization methods that this endpoint actually uses
+  endpointSecurity.forEach((securityRequirement) => {
+    Object.keys(securityRequirement).forEach((schemeName) => {
+      const scheme = schemes[schemeName];
+      if (!scheme) return;
+
+      if (scheme.type === "http" && scheme.scheme === "bearer") {
+        authHtml += `
+          <section class="mb-8">
+            <h2 class="section-title">Authorization</h2>
+            <table class="param-table">
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="param-name">Authorization</div>
+                  </td>
+                  <td>
+                    <div class="param-type">string</div>
+                  </td>
+                  <td>
+                    <div class="param-type">header</div>
+                  </td>
+                  <td>
+                    <span class="required">required</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="text-gray-400-custom pt-2 pb-4" colspan="4">
+                    ${
+                      scheme.description ||
+                      "Bearer authentication header of the form"
+                    } 
+                    <code class="available-option">Bearer &lt;token&gt;</code> where 
+                    <code class="available-option">&lt;token&gt;</code> is your auth token.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        `;
+      } else if (scheme.type === "apiKey") {
+        authHtml += `
+          <section class="mb-8">
+            <h2 class="section-title">Authorization</h2>
+            <table class="param-table">
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="param-name">${scheme.name}</div>
+                  </td>
+                  <td>
+                    <div class="param-type">string</div>
+                  </td>
+                  <td>
+                    <div class="param-type">${scheme.in}</div>
+                  </td>
+                  <td>
+                    <span class="required">required</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="text-gray-400-custom pt-2 pb-4" colspan="4">
+                    ${
+                      scheme.description ||
+                      `API Key sent via ${scheme.in} parameter`
+                    }
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        `;
+      }
+    });
   });
 
   return authHtml;
@@ -739,17 +788,54 @@ function generateTryItForm() {
   console.log("Current endpoint data:", endpoint);
   let formHtml = "";
 
-  // Add authorization field
-  if (swaggerData.components && swaggerData.components.securitySchemes) {
-    formHtml += `
-      <div>
-        <label class="block text-sm font-medium text-gray-400-custom mb-2" for="auth-token">
-          Token <span class="text-red-400 text-xs">*</span>
-        </label>
-        <input class="w-full px-3 py-2 text-sm rounded-lg" 
-               id="auth-token" name="auth-token" placeholder="123" type="text" required />
-      </div>
-    `;
+  // Add authorization field only if endpoint requires it
+  const endpointSecurity = endpoint.security;
+  if (
+    endpointSecurity &&
+    endpointSecurity.length > 0 &&
+    swaggerData.components &&
+    swaggerData.components.securitySchemes
+  ) {
+    const schemes = swaggerData.components.securitySchemes;
+
+    endpointSecurity.forEach((securityRequirement) => {
+      Object.keys(securityRequirement).forEach((schemeName) => {
+        const scheme = schemes[schemeName];
+        if (!scheme) return;
+
+        if (scheme.type === "http" && scheme.scheme === "bearer") {
+          formHtml += `
+            <div>
+              <label class="block text-sm font-medium text-gray-400-custom mb-2" for="auth-token">
+                Token <span class="text-red-400 text-xs">*</span>
+                <span class="text-gray-400-custom text-xs ml-1">(${
+                  scheme.description || "Bearer token"
+                })</span>
+              </label>
+              <input class="w-full px-3 py-2 text-sm rounded-lg" 
+                     id="auth-token" name="auth-token" placeholder="your-jwt-token" type="text" required />
+            </div>
+          `;
+        } else if (scheme.type === "apiKey") {
+          formHtml += `
+            <div>
+              <label class="block text-sm font-medium text-gray-400-custom mb-2" for="${
+                scheme.name
+              }">
+                ${scheme.name} <span class="text-red-400 text-xs">*</span>
+                <span class="text-gray-400-custom text-xs ml-1">(${
+                  scheme.description || "API Key"
+                })</span>
+              </label>
+              <input class="w-full px-3 py-2 text-sm rounded-lg" 
+                     id="${scheme.name}" name="${
+            scheme.name
+          }" placeholder="your-api-key" type="text" required />
+            </div>
+          `;
+        }
+      });
+    });
   }
 
   // Add parameter fields
@@ -901,14 +987,39 @@ function executeRequest() {
   let hasValidationError = false;
 
   // Check authorization if required
-  if (swaggerData.components && swaggerData.components.securitySchemes) {
-    const authToken = $("#auth-token").val();
-    if (!authToken || authToken.trim() === "") {
-      $("#auth-token").addClass("border-red-500");
-      hasValidationError = true;
-    } else {
-      $("#auth-token").removeClass("border-red-500");
-    }
+  const endpointSecurity = endpoint.security;
+  if (
+    endpointSecurity &&
+    endpointSecurity.length > 0 &&
+    swaggerData.components &&
+    swaggerData.components.securitySchemes
+  ) {
+    const schemes = swaggerData.components.securitySchemes;
+
+    endpointSecurity.forEach((securityRequirement) => {
+      Object.keys(securityRequirement).forEach((schemeName) => {
+        const scheme = schemes[schemeName];
+        if (!scheme) return;
+
+        if (scheme.type === "http" && scheme.scheme === "bearer") {
+          const authToken = $("#auth-token").val();
+          if (!authToken || authToken.trim() === "") {
+            $("#auth-token").addClass("border-red-500");
+            hasValidationError = true;
+          } else {
+            $("#auth-token").removeClass("border-red-500");
+          }
+        } else if (scheme.type === "apiKey") {
+          const apiKeyValue = $(`#${scheme.name}`).val();
+          if (!apiKeyValue || apiKeyValue.trim() === "") {
+            $(`#${scheme.name}`).addClass("border-red-500");
+            hasValidationError = true;
+          } else {
+            $(`#${scheme.name}`).removeClass("border-red-500");
+          }
+        }
+      });
+    });
   }
 
   if (endpoint.parameters) {
@@ -941,12 +1052,39 @@ function executeRequest() {
     return;
   }
 
-  // Add authorization
-  const authToken = $("#auth-token").val();
-  if (authToken) {
-    headers["Authorization"] = authToken.startsWith("Bearer ")
-      ? authToken
-      : `Bearer ${authToken}`;
+  // Add authorization headers
+  if (
+    endpointSecurity &&
+    endpointSecurity.length > 0 &&
+    swaggerData.components &&
+    swaggerData.components.securitySchemes
+  ) {
+    const schemes = swaggerData.components.securitySchemes;
+
+    endpointSecurity.forEach((securityRequirement) => {
+      Object.keys(securityRequirement).forEach((schemeName) => {
+        const scheme = schemes[schemeName];
+        if (!scheme) return;
+
+        if (scheme.type === "http" && scheme.scheme === "bearer") {
+          const authToken = $("#auth-token").val();
+          if (authToken) {
+            headers["Authorization"] = authToken.startsWith("Bearer ")
+              ? authToken
+              : `Bearer ${authToken}`;
+          }
+        } else if (scheme.type === "apiKey") {
+          const apiKeyValue = $(`#${scheme.name}`).val();
+          if (apiKeyValue) {
+            if (scheme.in === "header") {
+              headers[scheme.name] = apiKeyValue;
+            } else if (scheme.in === "query") {
+              // Will be handled in the query params section
+            }
+          }
+        }
+      });
+    });
   }
 
   // Process parameters
@@ -965,6 +1103,30 @@ function executeRequest() {
         }
       }
     });
+
+    // Add API key query parameters from security schemes
+    if (
+      endpointSecurity &&
+      endpointSecurity.length > 0 &&
+      swaggerData.components &&
+      swaggerData.components.securitySchemes
+    ) {
+      const schemes = swaggerData.components.securitySchemes;
+
+      endpointSecurity.forEach((securityRequirement) => {
+        Object.keys(securityRequirement).forEach((schemeName) => {
+          const scheme = schemes[schemeName];
+          if (scheme && scheme.type === "apiKey" && scheme.in === "query") {
+            const apiKeyValue = $(`#${scheme.name}`).val();
+            if (apiKeyValue) {
+              queryParams.push(
+                `${scheme.name}=${encodeURIComponent(apiKeyValue)}`
+              );
+            }
+          }
+        });
+      });
+    }
 
     if (queryParams.length > 0) {
       url += "?" + queryParams.join("&");
@@ -1729,9 +1891,28 @@ function renderCodeExample() {
 
   let curlCommand = `curl --request ${method} \\\n  --url '${getBaseUrl()}${path}'`;
 
-  // Add authorization
-  if (swaggerData.components && swaggerData.components.securitySchemes) {
-    curlCommand += ` \\\n  --header 'Authorization: Bearer <token>'`;
+  // Add authorization headers only if endpoint requires them
+  const endpointSecurity = endpoint.security;
+  if (
+    endpointSecurity &&
+    endpointSecurity.length > 0 &&
+    swaggerData.components &&
+    swaggerData.components.securitySchemes
+  ) {
+    const schemes = swaggerData.components.securitySchemes;
+
+    endpointSecurity.forEach((securityRequirement) => {
+      Object.keys(securityRequirement).forEach((schemeName) => {
+        const scheme = schemes[schemeName];
+        if (!scheme) return;
+
+        if (scheme.type === "http" && scheme.scheme === "bearer") {
+          curlCommand += ` \\\n  --header 'Authorization: Bearer <token>'`;
+        } else if (scheme.type === "apiKey" && scheme.in === "header") {
+          curlCommand += ` \\\n  --header '${scheme.name}: <${scheme.name}>'`;
+        }
+      });
+    });
   }
 
   // Add content type for requests with body
