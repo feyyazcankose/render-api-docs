@@ -433,16 +433,29 @@ function renderEndpointDetails() {
                       .replace(/\n/g, "\\n")}')" 
                     title="Copy request body example">content_copy</span>
             </div>
-            <pre class="bg-gray-900-custom text-gray-300-custom p-4 rounded-lg text-sm overflow-x-auto"><code class="">${
-              hljs.highlight(
-                JSON.stringify(
-                  generateSchemaExample(jsonContent.schema),
-                  null,
-                  2
-                ),
-                { language: "json" }
-              ).value
-            }</code></pre>
+            
+            <!-- Schema Tree View -->
+            <div class="bg-gray-900-custom rounded-lg p-4 overflow-x-auto mb-4">
+              <h4 class="text-sm font-semibold text-gray-300-custom mb-3">Request Body Schema</h4>
+              <div class="schema-tree-view text-sm">
+                ${renderSchemaTreeView(jsonContent.schema, 0, "request_body")}
+              </div>
+            </div>
+            
+            <!-- Example JSON -->
+            <div class="mt-4">
+              <h4 class="text-sm font-semibold text-gray-300-custom mb-2">Example Request Body</h4>
+              <pre class="bg-gray-900-custom text-gray-300-custom p-4 rounded-lg text-sm overflow-x-auto"><code class="">${
+                hljs.highlight(
+                  JSON.stringify(
+                    generateSchemaExample(jsonContent.schema),
+                    null,
+                    2
+                  ),
+                  { language: "json" }
+                ).value
+              }</code></pre>
+            </div>
           </div>
         </section>
       `;
