@@ -555,18 +555,18 @@ function renderEndpointDetails() {
         </span>
         <span class="api-path">${path}</span>
       </div>
-      <button class="try-it-btn" id="try-it-btn">
+      <button class="minimal-btn-secondary" id="try-it-btn">
         <span>Try it</span>
-        <span class="material-icons text-lg">play_arrow</span>
+        <span class="material-icons text-sm ml-1">expand_more</span>
       </button>
     </div>
-    <section class="mb-8 bg-gray-800-custom rounded-lg p-6" id="try-it-section">
-      <h2 class="text-xl font-semibold section-title mb-4">Try it out</h2>
-      <div class="space-y-4" id="try-it-form">
+    <section class="mb-8 minimal-form-container" id="try-it-section">
+      <h2 class="text-lg font-medium text-gray-300-custom mb-6">Try it out</h2>
+      <div class="space-y-6" id="try-it-form">
         <!-- Dynamic form will be generated here -->
       </div>
-      <div class="mt-6 hidden" id="response-container">
-        <h3 class="text-lg font-semibold text-gray-300-custom mb-2">Response</h3>
+      <div class="mt-8 hidden" id="response-container">
+        <h3 class="text-base font-medium text-gray-300-custom mb-3">Response</h3>
         <pre class="bg-gray-900-custom text-sm rounded-lg p-4 overflow-x-auto"><code class="" id="response-output"></code></pre>
       </div>
     </section>
@@ -584,7 +584,16 @@ function renderEndpointDetails() {
   $("#try-it-btn")
     .off("click")
     .on("click", function () {
-      $("#try-it-section").slideToggle();
+      const icon = $(this).find(".material-icons");
+      const section = $("#try-it-section");
+
+      section.slideToggle(300, function () {
+        if (section.is(":visible")) {
+          icon.text("expand_less");
+        } else {
+          icon.text("expand_more");
+        }
+      });
     });
 
   // Main content accordion handlers (only for response sections)
@@ -672,11 +681,11 @@ function generateTryItForm() {
   if (swaggerData.components && swaggerData.components.securitySchemes) {
     formHtml += `
       <div>
-        <label class="block text-sm font-medium text-gray-300-custom mb-1" for="auth-token">
-          Authorization <span class="text-red-400 ml-1">*</span>
+        <label class="block text-sm font-medium text-gray-400-custom mb-2" for="auth-token">
+          Token <span class="text-red-400 text-xs">*</span>
         </label>
-        <input class="bg-gray-700-custom border border-gray-700-custom text-gray-300-custom text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" 
-               id="auth-token" name="auth-token" placeholder="Bearer <token>" type="text" required />
+        <input class="w-full px-3 py-2 text-sm rounded-lg" 
+               id="auth-token" name="auth-token" placeholder="123" type="text" required />
       </div>
     `;
   }
@@ -687,16 +696,16 @@ function generateTryItForm() {
     endpoint.parameters.forEach((param) => {
       formHtml += `
         <div>
-          <label class="block text-sm font-medium text-gray-300-custom mb-1" for="${
+          <label class="block text-sm font-medium text-gray-400-custom mb-2" for="${
             param.name
           }">
             ${param.name} ${
         param.required
-          ? '<span class="text-red-400 ml-1">*</span>'
+          ? '<span class="text-red-400 text-xs">*</span>'
           : '<span class="text-gray-400-custom text-xs">(optional)</span>'
       } ${
         param.in === "path"
-          ? '<span class="bg-blue-600 text-xs px-2 py-0.5 rounded ml-2">path</span>'
+          ? '<span class="minimal-btn-secondary text-xs px-2 py-0.5 ml-2">path</span>'
           : ""
       }
           </label>
@@ -724,17 +733,17 @@ function generateTryItForm() {
 
     formHtml += `
       <div>
-        <label class="block text-sm font-medium text-gray-300-custom mb-1" for="request-body">
+        <label class="block text-sm font-medium text-gray-400-custom mb-2" for="request-body">
           Request Body ${
             endpoint.requestBody.required
-              ? '<span class="text-red-400 ml-1">*</span>'
+              ? '<span class="text-red-400 text-xs">*</span>'
               : '<span class="text-gray-400-custom text-xs">(optional)</span>'
           }
         </label>
         <div class="relative json-editor">
           <div class="relative">
-            <pre class="bg-gray-700-custom border border-gray-700-custom text-gray-300-custom text-sm rounded-lg p-2.5 h-64 overflow-auto font-mono absolute inset-0 pointer-events-none" id="request-body-highlight"></pre>
-            <textarea class="bg-transparent border border-gray-700-custom text-transparent text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 h-64 font-mono relative z-10 resize-none" 
+            <pre class="text-gray-300-custom text-sm rounded-lg p-3 h-48 overflow-auto font-mono absolute inset-0 pointer-events-none" id="request-body-highlight"></pre>
+            <textarea class="bg-transparent text-transparent text-sm rounded-lg block w-full p-3 h-48 font-mono relative z-10 resize-none" 
                       id="request-body" name="request-body" placeholder="${placeholder.replace(
                         /"/g,
                         "&quot;"
@@ -751,10 +760,10 @@ function generateTryItForm() {
   }
 
   formHtml += `
-    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center w-full justify-center" 
+    <button class="minimal-btn-primary flex items-center justify-center w-full" 
             id="run-request-btn">
-      <span class="material-icons mr-2">send</span>
-      Run Request
+      <span class="material-icons mr-2 text-sm">send</span>
+      Send API Request
     </button>
   `;
 
@@ -793,18 +802,18 @@ function generateInputField(param) {
       .join("");
 
     return `
-      <select class="bg-gray-700-custom border border-gray-700-custom text-gray-300-custom text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" 
+      <select class="w-full px-3 py-2 text-sm rounded-lg" 
               id="${param.name}" name="${param.name}" ${
       param.required ? "required" : ""
     }>
-        <option value="">--</option>
+        <option value="">Select option</option>
         ${options}
       </select>
     `;
   }
 
   return `
-    <input class="bg-gray-700-custom border border-gray-700-custom text-gray-300-custom text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" 
+    <input class="w-full px-3 py-2 text-sm rounded-lg" 
            id="${param.name}" name="${param.name}" 
            placeholder="${placeholder}" 
            type="${

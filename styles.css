@@ -7,8 +7,8 @@
   --bg-secondary: #000000;
   --bg-tertiary: #0b0c0e;
   --bg-quaternary: #121212;
-  --bg-card: #262626;
-  --bg-input: #374151;
+  --bg-card: #0b0c0e;
+  --bg-input: #0b0c0e;
   --bg-hover: #1a1a1a;
 
   --text-primary: #e5e5e5;
@@ -193,22 +193,23 @@ h1 {
 }
 
 .try-it-btn {
-  background-color: #10b981;
-  color: #ffffff;
-  padding: 5px 10px;
-  border-radius: 0.75rem;
+  background-color: transparent;
+  color: var(--text-tertiary);
+  padding: 8px 16px;
+  border-radius: 6px;
   font-weight: 500;
   font-size: 0.875rem;
-  border: none;
+  border: 1px solid var(--border-secondary);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
 .try-it-btn:hover {
-  background-color: #059669;
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 /* Code Block Styles */
@@ -346,15 +347,89 @@ input,
 select,
 textarea {
   background-color: var(--bg-input) !important;
-  border-color: var(--border-secondary) !important;
+  border: 1px solid var(--border-secondary) !important;
   color: var(--text-primary) !important;
+  transition: all 0.2s ease;
+  font-size: 14px;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--accent-primary) !important;
-  box-shadow: 0 0 0 1px var(--accent-primary) !important;
+  border-color: var(--border-tertiary) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Form field spacing */
+.form-field {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  border-radius: 8px;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-secondary);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.form-input:focus {
+  border-color: var(--border-tertiary);
+  box-shadow: none;
+  outline: none;
+}
+
+/* Minimal form container */
+.minimal-form-container {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: 24px;
+  padding: 24px;
+}
+
+/* Minimal button styles */
+.minimal-btn-primary {
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
+  border: 1px solid var(--text-primary);
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.minimal-btn-primary:hover {
+  background-color: var(--text-secondary);
+  border-color: var(--text-secondary);
+}
+
+.minimal-btn-secondary {
+  background-color: transparent;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-secondary);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.minimal-btn-secondary:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 /* Accordion Styles */
