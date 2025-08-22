@@ -6,6 +6,8 @@
 // Global variables
 let swaggerData = null;
 let currentEndpoint = null;
+let allEndpoints = []; // Array to store all endpoints for navigation
+let currentEndpointIndex = -1; // Current position in the endpoints array
 
 /**
  * Initialize the application
@@ -98,12 +100,8 @@ async function loadSwaggerData() {
     if (hash) {
       loadEndpointFromHash(hash);
     } else {
-      // Load first endpoint by default
-      const firstPath = Object.keys(swaggerData.paths)[0];
-      const firstMethod = Object.keys(swaggerData.paths[firstPath])[0];
-      if (firstPath && firstMethod) {
-        loadEndpoint(firstPath, firstMethod);
-      }
+      // Show overview page by default
+      navigateToOverview();
     }
   } catch (error) {
     console.error("Error loading swagger.json:", error);
@@ -151,6 +149,9 @@ function generateNavigation() {
   const nav = $("aside nav");
   nav.empty();
 
+  // Clear and populate allEndpoints array for navigation
+  allEndpoints = [];
+
   // Group endpoints by tag or path prefix
   const groups = {};
 
@@ -160,16 +161,21 @@ function generateNavigation() {
       const tags = endpoint.tags || ["Default"];
       const tag = tags[0];
 
-      if (!groups[tag]) {
-        groups[tag] = [];
-      }
-
-      groups[tag].push({
+      const endpointData = {
         path: path,
         method: method.toUpperCase(),
         summary: endpoint.summary || endpoint.operationId || path,
         operationId: endpoint.operationId,
-      });
+      };
+
+      // Add to allEndpoints array for navigation
+      allEndpoints.push(endpointData);
+
+      if (!groups[tag]) {
+        groups[tag] = [];
+      }
+
+      groups[tag].push(endpointData);
     });
   });
 
@@ -317,6 +323,12 @@ function loadEndpoint(path, method) {
     method: method,
     data: swaggerData.paths[path][method],
   };
+
+  // Update current endpoint index for navigation
+  currentEndpointIndex = allEndpoints.findIndex(
+    (endpoint) =>
+      endpoint.path === path && endpoint.method === method.toUpperCase()
+  );
 
   renderEndpointDetails();
   renderCodeExample();
@@ -526,11 +538,6 @@ function renderEndpointDetails() {
   }
 
   const html = `
-    <div class="flex justify-between items-center mb-4">
-      <a class="text-sm text-gray-400-custom flex items-center" href="#">
-        <span class="material-icons mr-1">arrow_back</span> API Documentation
-      </a>
-    </div>
     <header class="mb-8">
       <div class="flex items-center justify-between mb-2">
         <h1 class="text-3xl font-bold text-gray-300-custom">
@@ -574,6 +581,61 @@ function renderEndpointDetails() {
     ${parametersHtml}
     ${requestBodyHtml}
     ${responsesHtml}
+    
+    <!-- Bottom Navigation -->
+    <div class="flex justify-between items-center mt-12 pt-8 border-t border-gray-700-custom">
+      <button 
+        class="nav-button nav-button-large ${
+          currentEndpointIndex <= 0 ? "opacity-50 cursor-not-allowed" : ""
+        }"
+        onclick="navigateToPreviousEndpoint()"
+        ${currentEndpointIndex <= 0 ? "disabled" : ""}
+        title="Previous endpoint"
+      >
+        <span class="material-icons text-sm">chevron_left</span>
+        <div class="flex flex-col items-start">
+          <span>Previous Endpoint</span>
+          ${
+            currentEndpointIndex > 0
+              ? `
+            <div class="nav-button-preview">${
+              allEndpoints[currentEndpointIndex - 1].summary
+            }</div>
+          `
+              : ""
+          }
+        </div>
+      </button>
+      
+      <div class="nav-counter">
+        ${currentEndpointIndex + 1} of ${allEndpoints.length} endpoints
+      </div>
+      
+      <button 
+        class="nav-button nav-button-large ${
+          currentEndpointIndex >= allEndpoints.length - 1
+            ? "opacity-50 cursor-not-allowed"
+            : ""
+        }"
+        onclick="navigateToNextEndpoint()"
+        ${currentEndpointIndex >= allEndpoints.length - 1 ? "disabled" : ""}
+        title="Next endpoint"
+      >
+        <div class="flex flex-col items-end">
+          <span>Next Endpoint</span>
+          ${
+            currentEndpointIndex < allEndpoints.length - 1
+              ? `
+            <div class="nav-button-preview">${
+              allEndpoints[currentEndpointIndex + 1].summary
+            }</div>
+          `
+              : ""
+          }
+        </div>
+        <span class="material-icons text-sm">chevron_right</span>
+      </button>
+    </div>
   `;
 
   mainContent.html(html);
@@ -1887,11 +1949,175 @@ function showToast(message, type = "info") {
 }
 
 /**
+ * Navigate to previous endpoint
+ */
+function navigateToPreviousEndpoint() {
+  if (currentEndpointIndex > 0) {
+    const prevEndpoint = allEndpoints[currentEndpointIndex - 1];
+    loadEndpoint(prevEndpoint.path, prevEndpoint.method.toLowerCase());
+
+    // Update URL hash
+    const endpointHash = `${prevEndpoint.method}-${prevEndpoint.path.replace(
+      /[^a-zA-Z0-9]/g,
+      "-"
+    )}`;
+    window.history.pushState(null, "", `#${endpointHash}`);
+
+    // Update active sidebar item
+    updateActiveSidebarItem(
+      prevEndpoint.path,
+      prevEndpoint.method.toLowerCase()
+    );
+  }
+}
+
+/**
+ * Navigate to next endpoint
+ */
+function navigateToNextEndpoint() {
+  if (currentEndpointIndex < allEndpoints.length - 1) {
+    const nextEndpoint = allEndpoints[currentEndpointIndex + 1];
+    loadEndpoint(nextEndpoint.path, nextEndpoint.method.toLowerCase());
+
+    // Update URL hash
+    const endpointHash = `${nextEndpoint.method}-${nextEndpoint.path.replace(
+      /[^a-zA-Z0-9]/g,
+      "-"
+    )}`;
+    window.history.pushState(null, "", `#${endpointHash}`);
+
+    // Update active sidebar item
+    updateActiveSidebarItem(
+      nextEndpoint.path,
+      nextEndpoint.method.toLowerCase()
+    );
+  }
+}
+
+/**
+ * Update active sidebar item
+ * @param {string} path - API endpoint path
+ * @param {string} method - HTTP method
+ */
+function updateActiveSidebarItem(path, method) {
+  $(".endpoint-link").removeClass("nav-link active");
+  $(`.endpoint-link[data-path="${path}"][data-method="${method}"]`)
+    .addClass("nav-link active")
+    .closest(".accordion-content")
+    .show()
+    .prev(".accordion-toggle")
+    .find(".material-icons")
+    .text("expand_more");
+}
+
+/**
+ * Navigate back to API overview
+ */
+function navigateToOverview() {
+  // Clear current endpoint
+  currentEndpoint = null;
+  currentEndpointIndex = -1;
+
+  // Clear URL hash
+  window.history.pushState(null, "", window.location.pathname);
+
+  // Clear active sidebar items
+  $(".endpoint-link").removeClass("nav-link active");
+
+  // Show overview content
+  showApiOverview();
+}
+
+/**
+ * Show API overview page
+ */
+function showApiOverview() {
+  const mainContent = $("main");
+  const overviewHtml = `
+    <div class="text-center py-16">
+      <h1 class="text-4xl font-bold text-gray-300-custom mb-6">API Documentation</h1>
+      <p class="text-gray-400-custom text-lg mb-8">
+        Welcome to the API documentation. Select an endpoint from the sidebar to get started.
+      </p>
+      <div class="overview-grid">
+        ${Object.keys(getEndpointsByTag())
+          .map(
+            (tag) => `
+          <div class="overview-card">
+            <h3>${tag}</h3>
+            <p>
+              ${getEndpointsByTag()[tag].length} endpoint${
+              getEndpointsByTag()[tag].length !== 1 ? "s" : ""
+            }
+            </p>
+            <div class="flex flex-wrap gap-2">
+              ${getEndpointsByTag()
+                [tag].slice(0, 3)
+                .map(
+                  (endpoint) => `
+                <span class="method-badge bg-${getMethodColor(
+                  endpoint.method
+                )}-500 text-white">
+                  ${getMethodDisplayName(endpoint.method)}
+                </span>
+              `
+                )
+                .join("")}
+              ${
+                getEndpointsByTag()[tag].length > 3
+                  ? `
+                <span class="text-gray-400-custom text-xs">+${
+                  getEndpointsByTag()[tag].length - 3
+                } more</span>
+              `
+                  : ""
+              }
+            </div>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+
+  mainContent.html(overviewHtml);
+
+  // Clear code examples sidebar
+  $("aside:last-child").html(`
+    <div class="text-center py-16">
+      <div class="text-gray-400-custom">
+        <span class="material-icons text-4xl mb-4">code</span>
+        <p>Select an endpoint to see code examples</p>
+      </div>
+    </div>
+  `);
+}
+
+/**
+ * Get endpoints grouped by tag
+ * @returns {Object} - Endpoints grouped by tag
+ */
+function getEndpointsByTag() {
+  const groups = {};
+  allEndpoints.forEach((endpoint) => {
+    const tag = "Default"; // You can enhance this to get actual tags from swagger data
+    if (!groups[tag]) {
+      groups[tag] = [];
+    }
+    groups[tag].push(endpoint);
+  });
+  return groups;
+}
+
+/**
  * Handle browser back/forward buttons
  */
 window.addEventListener("popstate", function (event) {
   const hash = window.location.hash.substring(1);
   if (hash && swaggerData) {
     loadEndpointFromHash(hash);
+  } else if (swaggerData) {
+    navigateToOverview();
   }
 });
