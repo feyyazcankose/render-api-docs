@@ -602,70 +602,48 @@ textarea:focus {
   position: relative;
 }
 
-/* Schema tree nesting levels with distinct colors */
-.schema-row[data-level="0"] {
-  border-left-color: #60a5fa;
-  border-left-width: 1px;
-}
-
-.schema-row[data-level="1"] {
-  border-left-color: #34d399;
-  border-left-width: 1px;
-}
-
-.schema-row[data-level="2"] {
-  border-left-color: #a78bfa;
-  border-left-width: 1px;
-}
-
-.schema-row[data-level="3"] {
-  border-left-color: #fb923c;
-  border-left-width: 1px;
-}
-
-.schema-row[data-level="4"] {
-  border-left-color: #f87171;
-  border-left-width: 1px;
-}
-
-.schema-row[data-level="5"] {
-  border-left-color: #fb7185;
-  border-left-width: 1px;
-}
-
-/* Deeper nesting cycles through colors */
+/* Schema tree nesting levels with thin gray lines */
+.schema-row[data-level="0"],
+.schema-row[data-level="1"],
+.schema-row[data-level="2"],
+.schema-row[data-level="3"],
+.schema-row[data-level="4"],
+.schema-row[data-level="5"],
 .schema-row[data-level="6"] {
-  border-left-color: #60a5fa;
+  border-left-color: #4b5563;
   border-left-width: 1px;
 }
 
 /* Enhanced visual connection lines */
-.schema-row[data-level="0"] .border-line {
-  background-color: #60a5fa;
-  height: 1px;
-}
-
-.schema-row[data-level="1"] .border-line {
-  background-color: #34d399;
-  height: 1px;
-}
-
-.schema-row[data-level="2"] .border-line {
-  background-color: #a78bfa;
-  height: 1px;
-}
-
-.schema-row[data-level="3"] .border-line {
-  background-color: #fb923c;
-  height: 1px;
-}
-
-.schema-row[data-level="4"] .border-line {
-  background-color: #f87171;
-  height: 1px;
-}
-
+.schema-row[data-level="0"] .border-line,
+.schema-row[data-level="1"] .border-line,
+.schema-row[data-level="2"] .border-line,
+.schema-row[data-level="3"] .border-line,
+.schema-row[data-level="4"] .border-line,
 .schema-row[data-level="5"] .border-line {
-  background-color: #fb7185;
+  background-color: #4b5563;
   height: 1px;
+}
+
+/* anyOf select box styles */
+.anyof-select {
+  background-color: #374151;
+  border: 1px solid #4b5563;
+  color: #f9fafb;
+  font-size: 0.75rem;
+  font-family: "JetBrains Mono", "Courier New", Courier, monospace;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+  min-width: 120px;
+}
+
+.anyof-select:focus {
+  border-color: #10b981;
+  outline: none;
+  box-shadow: 0 0 0 1px #10b981;
+}
+
+.anyof-content {
+  margin-top: 8px;
 }

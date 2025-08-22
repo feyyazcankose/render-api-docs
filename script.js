@@ -995,7 +995,7 @@ function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
     }
   }
 
-  // Handle anyOf - show all possible schemas
+  // Handle anyOf - show with select box
   if (schema.anyOf && Array.isArray(schema.anyOf) && schema.anyOf.length > 0) {
     let html = `<div class="schema-row" data-level="${depth}" style="margin-left: ${
       depth * 24
@@ -1003,11 +1003,7 @@ function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
       <div class="border-line"></div>
       <div class="schema-content">
         <div class="property-main-row">
-          <div class="expand-button" onclick="toggleSchemaProperty('${propertyId}_anyof')" role="button">
-            <svg class="chevron-icon" viewBox="0 0 320 512">
-              <path fill="currentColor" d="M96 480c-8.188 0-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L242.8 256L73.38 86.63c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l192 192c12.5 12.5 12.5 32.75 0 45.25l-192 192C112.4 476.9 104.2 480 96 480z"></path>
-            </svg>
-          </div>
+          <div class="expand-button-spacer"></div>
           <div class="property-info">
             <div class="property-name">anyOf (${
               schema.anyOf.length
@@ -1015,50 +1011,32 @@ function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
             <span class="property-type">union</span>
           </div>
         </div>
-        <div class="property-description">One of the following schemas</div>
-      </div>
-    </div>
-    <div id="${propertyId}_anyof" class="nested-properties" style="display: none;">`;
+        <div class="property-description">
+          Select one of the following schemas:
+          <select class="anyof-select" onchange="switchAnyOfOption('${propertyId}', this.value)">`;
 
+    // Generate select options
     schema.anyOf.forEach((subSchema, index) => {
-      const optionId = `${propertyId}_anyof_${index}`;
-      const optionHasNested = checkForNestedProperties(subSchema);
-
-      html += `<div class="schema-row" data-level="${
-        depth + 1
-      }" style="margin-left: ${(depth + 1) * 24}px;">
-        <div class="border-line"></div>
-        <div class="schema-content">
-          <div class="property-main-row">`;
-
-      // Add expand button if option has nested properties
-      if (optionHasNested) {
-        html += `<div class="expand-button" onclick="toggleSchemaProperty('${optionId}')" role="button">
-          <svg class="chevron-icon" viewBox="0 0 320 512">
-            <path fill="currentColor" d="M96 480c-8.188 0-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L242.8 256L73.38 86.63c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l192 192c12.5 12.5 12.5 32.75 0 45.25l-192 192C112.4 476.9 104.2 480 96 480z"></path>
-          </svg>
-        </div>`;
-      } else {
-        html += `<div class="expand-button-spacer"></div>`;
-      }
-
-      html += `<div class="property-info">
-              <div class="property-name">Option ${index + 1}</div>
-              <span class="property-type">${getSchemaType(subSchema)}</span>
-            </div>
-          </div>
-        </div>
-      </div>`;
-
-      // Add nested content if exists
-      if (optionHasNested) {
-        html += `<div id="${optionId}" class="nested-properties" style="display: none;">`;
-        html += renderSchemaTreeView(subSchema, depth + 2, optionId);
-        html += `</div>`;
-      }
+      html += `<option value="${index}" ${index === 0 ? "selected" : ""}>
+        Option ${index + 1} (${getSchemaType(subSchema)})
+      </option>`;
     });
 
-    html += `</div>`;
+    html += `</select>
+        </div>
+      </div>
+    </div>`;
+
+    // Generate content for each option (only first one visible by default)
+    schema.anyOf.forEach((subSchema, index) => {
+      const optionId = `${propertyId}_anyof_${index}`;
+      const isVisible = index === 0 ? "block" : "none";
+
+      html += `<div id="${optionId}" class="anyof-content" style="display: ${isVisible};">`;
+      html += renderSchemaTreeView(subSchema, depth + 1, optionId);
+      html += `</div>`;
+    });
+
     return html;
   }
 
@@ -1253,46 +1231,29 @@ function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
           Array.isArray(prop.anyOf) &&
           prop.anyOf.length > 0
         ) {
-          // Show anyOf options
+          // Show anyOf with select box
+          html += `<div class="property-description">
+            Select one of the following schemas:
+            <select class="anyof-select" onchange="switchAnyOfOption('${currentId}', this.value)">`;
+
+          // Generate select options
+          prop.anyOf.forEach((subSchema, index) => {
+            html += `<option value="${index}" ${index === 0 ? "selected" : ""}>
+              Option ${index + 1} (${getSchemaType(subSchema)})
+            </option>`;
+          });
+
+          html += `</select>
+          </div>`;
+
+          // Generate content for each option (only first one visible by default)
           prop.anyOf.forEach((subSchema, index) => {
             const optionId = `${currentId}_anyof_${index}`;
-            const optionHasNested = checkForNestedProperties(subSchema);
+            const isVisible = index === 0 ? "block" : "none";
 
-            html += `<div class="schema-row" data-level="${
-              depth + 1
-            }" style="margin-left: ${(depth + 1) * 24}px;">
-              <div class="border-line"></div>
-              <div class="schema-content">
-                <div class="property-main-row">`;
-
-            // Add expand button if option has nested properties
-            if (optionHasNested) {
-              html += `<div class="expand-button" onclick="toggleSchemaProperty('${optionId}')" role="button">
-                <svg class="chevron-icon" viewBox="0 0 320 512">
-                  <path fill="currentColor" d="M96 480c-8.188 0-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L242.8 256L73.38 86.63c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l192 192c12.5 12.5 12.5 32.75 0 45.25l-192 192C112.4 476.9 104.2 480 96 480z"></path>
-                </svg>
-              </div>`;
-            } else {
-              html += `<div class="expand-button-spacer"></div>`;
-            }
-
-            html += `<div class="property-info">
-                    <div class="property-name">Option ${index + 1}</div>
-                    <span class="property-type">${getSchemaType(
-                      subSchema
-                    )}</span>
-                  </div>
-                </div>
-                <div class="property-description">One of the possible schemas</div>
-              </div>
-            </div>`;
-
-            // Add nested content if exists
-            if (optionHasNested) {
-              html += `<div id="${optionId}" class="nested-properties" style="display: none;">`;
-              html += renderSchemaTreeView(subSchema, depth + 2, optionId);
-              html += `</div>`;
-            }
+            html += `<div id="${optionId}" class="anyof-content" style="display: ${isVisible};">`;
+            html += renderSchemaTreeView(subSchema, depth + 1, optionId);
+            html += `</div>`;
           });
         } else if (
           prop.oneOf &&
@@ -1414,6 +1375,32 @@ function toggleSchemaProperty(propertyId) {
     if (chevron) {
       chevron.style.transform = isHidden ? "rotate(90deg)" : "rotate(0deg)";
     }
+  }
+}
+
+/**
+ * Switch anyOf option visibility
+ * @param {string} propertyId - Base property ID
+ * @param {string} selectedIndex - Selected option index
+ */
+function switchAnyOfOption(propertyId, selectedIndex) {
+  // Hide all anyOf options
+  let index = 0;
+  while (true) {
+    const optionElement = document.getElementById(
+      `${propertyId}_anyof_${index}`
+    );
+    if (!optionElement) break;
+    optionElement.style.display = "none";
+    index++;
+  }
+
+  // Show selected option
+  const selectedElement = document.getElementById(
+    `${propertyId}_anyof_${selectedIndex}`
+  );
+  if (selectedElement) {
+    selectedElement.style.display = "block";
   }
 }
 
