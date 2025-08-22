@@ -11,8 +11,78 @@ let currentEndpoint = null;
  * Initialize the application
  */
 $(document).ready(function () {
+  initializeTheme();
   loadSwaggerData();
 });
+
+/**
+ * Initialize theme system
+ */
+function initializeTheme() {
+  // Load saved theme or default to dark
+  const savedTheme = localStorage.getItem("api-docs-theme") || "dark";
+  setTheme(savedTheme);
+
+  // Add event listener for theme toggle
+  $("#theme-toggle").on("click", toggleTheme);
+}
+
+/**
+ * Set the current theme
+ * @param {string} theme - 'light' or 'dark'
+ */
+function setTheme(theme) {
+  if (theme === "light") {
+    document.documentElement.setAttribute("data-theme", "light");
+    $("#theme-icon").text("light_mode");
+    switchHighlightTheme("light");
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+    $("#theme-icon").text("dark_mode");
+    switchHighlightTheme("dark");
+  }
+
+  // Save theme preference
+  localStorage.setItem("api-docs-theme", theme);
+}
+
+/**
+ * Switch highlight.js theme dynamically
+ * @param {string} theme - 'light' or 'dark'
+ */
+function switchHighlightTheme(theme) {
+  // Remove existing highlight.js theme
+  const existingLink = document.querySelector('link[href*="highlight.js"]');
+  if (existingLink) {
+    existingLink.remove();
+  }
+
+  // Add new theme
+  const newLink = document.createElement("link");
+  newLink.rel = "stylesheet";
+  newLink.href =
+    theme === "light"
+      ? "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css"
+      : "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css";
+
+  document.head.appendChild(newLink);
+
+  // Re-highlight all code blocks
+  setTimeout(() => {
+    document.querySelectorAll("pre code").forEach((block) => {
+      hljs.highlightElement(block);
+    });
+  }, 100);
+}
+
+/**
+ * Toggle between light and dark themes
+ */
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute("data-theme");
+  const newTheme = currentTheme === "light" ? "dark" : "light";
+  setTheme(newTheme);
+}
 
 /**
  * Load swagger.json data and initialize the application
@@ -109,7 +179,7 @@ function generateNavigation() {
       <div>
         <ul class="space-y-2 text-sm">
           <li>
-            <a class="flex items-center px-3 py-1 rounded accordion-toggle cursor-pointer sidebar-item !justify-start text-[#9e9e9e]">
+            <a class="flex items-center px-3 py-1 rounded accordion-toggle cursor-pointer sidebar-item !justify-start text-gray-400-custom">
               <span>${groupName}</span>
               <span class="material-icons text-sm transform transition-transform ml-5">chevron_right</span>
             </a>
@@ -330,11 +400,11 @@ function renderEndpointDetails() {
     if (jsonContent && jsonContent.schema) {
       requestBodyHtml = `
         <section class="mb-8">
-          <h2 class="text-xl font-semibold text-white mb-4">Request Body</h2>
+          <h2 class="text-xl font-semibold section-title mb-4">Request Body</h2>
           <div class="bg-gray-800-custom rounded-lg p-4">
             <div class="flex items-center justify-between text-sm mb-2">
               <div class="flex items-center gap-2">
-                <span class="font-mono text-white">application/json</span>
+                <span class="font-mono text-gray-300-custom">application/json</span>
                 ${
                   endpoint.requestBody.required
                     ? '<span class="text-red-400 text-xs">required</span>'
@@ -351,7 +421,7 @@ function renderEndpointDetails() {
                       .replace(/\n/g, "\\n")}')" 
                     title="Copy request body example">content_copy</span>
             </div>
-            <pre class="bg-gray-900-custom text-white p-4 rounded-lg text-sm overflow-x-auto"><code class="language-json">${
+            <pre class="bg-gray-900-custom text-gray-300-custom p-4 rounded-lg text-sm overflow-x-auto"><code class="">${
               hljs.highlight(
                 JSON.stringify(
                   generateSchemaExample(jsonContent.schema),
@@ -372,7 +442,7 @@ function renderEndpointDetails() {
   if (endpoint.responses) {
     responsesHtml = `
       <section class="mb-8">
-        <h2 class="text-xl font-semibold text-white mb-4">Responses</h2>
+        <h2 class="text-xl font-semibold section-title mb-4">Responses</h2>
         ${Object.keys(endpoint.responses)
           .map((statusCode) => {
             const response = endpoint.responses[statusCode];
@@ -410,8 +480,8 @@ function renderEndpointDetails() {
                 }</p>
                 ${
                   content && content.schema
-                    ? `<div class="bg-[#000000] rounded-lg p-4 overflow-x-auto">
-                        <h4 class="text-sm font-semibold text-white mb-3">Response Schema</h4>
+                    ? `<div class="bg-gray-900-custom rounded-lg p-4 overflow-x-auto">
+                        <h4 class="text-sm font-semibold text-gray-300-custom mb-3">Response Schema</h4>
                         <div class="schema-tree-view text-sm">
                           ${renderSchemaTreeView(
                             content.schema,
@@ -421,8 +491,8 @@ function renderEndpointDetails() {
                         </div>
                        </div>
                        <div class="mt-4">
-                        <h4 class="text-sm font-semibold text-white mb-2">Example Response</h4>
-                        <pre class="bg-black text-sm rounded-lg p-4 overflow-x-auto"><code class="language-json">${
+                        <h4 class="text-sm font-semibold text-gray-300-custom mb-2">Example Response</h4>
+                        <pre class="bg-gray-900-custom text-sm rounded-lg p-4 overflow-x-auto"><code class="">${
                           hljs.highlight(
                             JSON.stringify(
                               generateSchemaExample(content.schema),
@@ -434,7 +504,7 @@ function renderEndpointDetails() {
                         }</code></pre>
                        </div>`
                     : content
-                    ? `<pre class="bg-black text-sm rounded-lg p-4 overflow-x-auto"><code class="language-json">${
+                    ? `<pre class="bg-gray-900-custom text-sm rounded-lg p-4 overflow-x-auto"><code class="">${
                         hljs.highlight(
                           JSON.stringify(
                             generateSchemaExample(content.schema || {}),
@@ -463,7 +533,7 @@ function renderEndpointDetails() {
     </div>
     <header class="mb-8">
       <div class="flex items-center justify-between mb-2">
-        <h1 class="text-3xl font-bold text-white">
+        <h1 class="text-3xl font-bold text-gray-300-custom">
           ${endpoint.summary || endpoint.operationId || path}
         </h1>
         <span class="material-icons text-gray-400-custom cursor-pointer copy-icon" 
@@ -491,13 +561,13 @@ function renderEndpointDetails() {
       </button>
     </div>
     <section class="mb-8 bg-gray-800-custom rounded-lg p-6" id="try-it-section">
-      <h2 class="text-xl font-semibold text-white mb-4">Try it out</h2>
+      <h2 class="text-xl font-semibold section-title mb-4">Try it out</h2>
       <div class="space-y-4" id="try-it-form">
         <!-- Dynamic form will be generated here -->
       </div>
       <div class="mt-6 hidden" id="response-container">
-        <h3 class="text-lg font-semibold text-white mb-2">Response</h3>
-        <pre class="bg-black text-sm rounded-lg p-4 overflow-x-auto"><code class="language-json" id="response-output"></code></pre>
+        <h3 class="text-lg font-semibold text-gray-300-custom mb-2">Response</h3>
+        <pre class="bg-gray-900-custom text-sm rounded-lg p-4 overflow-x-auto"><code class="" id="response-output"></code></pre>
       </div>
     </section>
     ${getAuthorizationHtml()}
@@ -605,7 +675,7 @@ function generateTryItForm() {
         <label class="block text-sm font-medium text-gray-300-custom mb-1" for="auth-token">
           Authorization <span class="text-red-400 ml-1">*</span>
         </label>
-        <input class="bg-gray-700-custom border border-gray-700-custom text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" 
+        <input class="bg-gray-700-custom border border-gray-700-custom text-gray-300-custom text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" 
                id="auth-token" name="auth-token" placeholder="Bearer <token>" type="text" required />
       </div>
     `;
@@ -623,7 +693,7 @@ function generateTryItForm() {
             ${param.name} ${
         param.required
           ? '<span class="text-red-400 ml-1">*</span>'
-          : '<span class="text-gray-500 text-xs">(optional)</span>'
+          : '<span class="text-gray-400-custom text-xs">(optional)</span>'
       } ${
         param.in === "path"
           ? '<span class="bg-blue-600 text-xs px-2 py-0.5 rounded ml-2">path</span>'
@@ -633,7 +703,7 @@ function generateTryItForm() {
           ${generateInputField(param)}
           ${
             param.description
-              ? `<p class="text-xs text-gray-400 mt-1">${param.description}</p>`
+              ? `<p class="text-xs text-gray-400-custom mt-1">${param.description}</p>`
               : ""
           }
         </div>
@@ -658,12 +728,12 @@ function generateTryItForm() {
           Request Body ${
             endpoint.requestBody.required
               ? '<span class="text-red-400 ml-1">*</span>'
-              : '<span class="text-gray-500 text-xs">(optional)</span>'
+              : '<span class="text-gray-400-custom text-xs">(optional)</span>'
           }
         </label>
         <div class="relative json-editor">
           <div class="relative">
-            <pre class="bg-gray-700-custom border border-gray-700-custom text-white text-sm rounded-lg p-2.5 h-64 overflow-auto font-mono absolute inset-0 pointer-events-none" id="request-body-highlight"></pre>
+            <pre class="bg-gray-700-custom border border-gray-700-custom text-gray-300-custom text-sm rounded-lg p-2.5 h-64 overflow-auto font-mono absolute inset-0 pointer-events-none" id="request-body-highlight"></pre>
             <textarea class="bg-transparent border border-gray-700-custom text-transparent text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 h-64 font-mono relative z-10 resize-none" 
                       id="request-body" name="request-body" placeholder="${placeholder.replace(
                         /"/g,
@@ -672,7 +742,7 @@ function generateTryItForm() {
                       oninput="highlightJSON(this)"
                       onscroll="syncScroll(this)">${placeholder}</textarea>
           </div>
-          <button type="button" class="absolute top-2 right-2 text-gray-400-custom hover:text-white text-xs z-20" onclick="formatJSON()">
+          <button type="button" class="absolute top-2 right-2 text-gray-400-custom hover:text-gray-300-custom text-xs z-20" onclick="formatJSON()">
             <span class="material-icons text-sm">code</span>
           </button>
         </div>
@@ -723,7 +793,7 @@ function generateInputField(param) {
       .join("");
 
     return `
-      <select class="bg-gray-700-custom border border-gray-700-custom text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" 
+      <select class="bg-gray-700-custom border border-gray-700-custom text-gray-300-custom text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" 
               id="${param.name}" name="${param.name}" ${
       param.required ? "required" : ""
     }>
@@ -734,7 +804,7 @@ function generateInputField(param) {
   }
 
   return `
-    <input class="bg-gray-700-custom border border-gray-700-custom text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" 
+    <input class="bg-gray-700-custom border border-gray-700-custom text-gray-300-custom text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" 
            id="${param.name}" name="${param.name}" 
            placeholder="${placeholder}" 
            type="${
@@ -1645,7 +1715,7 @@ function renderCodeExample() {
                 }\`)" title="Copy response">content_copy</span>
               </div>
             </div>
-            <pre class="code-content"><code class="language-json">${
+            <pre class="code-content"><code class="">${
               content
                 ? hljs.highlight(
                     JSON.stringify(
@@ -1763,7 +1833,7 @@ function showCopySuccess(element) {
   if (iconElement) {
     const originalIcon = iconElement.textContent;
     iconElement.textContent = "check";
-    iconElement.style.color = "#10b981";
+    iconElement.style.color = "var(--accent-primary)";
 
     setTimeout(() => {
       iconElement.textContent = originalIcon;
