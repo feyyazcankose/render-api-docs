@@ -409,11 +409,35 @@ function renderEndpointDetails() {
                   response.description || "No description available"
                 }</p>
                 ${
-                  content
+                  content && content.schema
+                    ? `<div class="bg-[#0b0c0e] rounded-lg p-4 overflow-x-auto">
+                        <h4 class="text-sm font-semibold text-white mb-3">Response Schema</h4>
+                        <div class="schema-tree-view text-sm">
+                          ${renderSchemaTreeView(
+                            content.schema,
+                            0,
+                            `response_${statusCode}`
+                          )}
+                        </div>
+                       </div>
+                       <div class="mt-4">
+                        <h4 class="text-sm font-semibold text-white mb-2">Example Response</h4>
+                        <pre class="bg-black text-sm rounded-lg p-4 overflow-x-auto"><code class="language-json">${
+                          hljs.highlight(
+                            JSON.stringify(
+                              generateSchemaExample(content.schema),
+                              null,
+                              2
+                            ),
+                            { language: "json" }
+                          ).value
+                        }</code></pre>
+                       </div>`
+                    : content
                     ? `<pre class="bg-black text-sm rounded-lg p-4 overflow-x-auto"><code class="language-json">${
                         hljs.highlight(
                           JSON.stringify(
-                            generateSchemaExample(content.schema),
+                            generateSchemaExample(content.schema || {}),
                             null,
                             2
                           ),
@@ -842,6 +866,580 @@ function executeRequest() {
     }).value;
     $("#response-output").html(highlightedCode);
   }, 1000);
+}
+
+/**
+ * Check if schema has nested properties that should be expandable
+ * @param {Object} schema - OpenAPI schema object
+ * @returns {boolean} - True if has nested properties
+ */
+function checkForNestedProperties(schema) {
+  if (!schema || typeof schema !== "object") return false;
+
+  // Handle $ref references
+  if (schema.$ref) {
+    const refPath = schema.$ref.replace("#/", "").split("/");
+    let refSchema = swaggerData;
+    for (const path of refPath) {
+      refSchema = refSchema[path];
+      if (!refSchema) break;
+    }
+    return refSchema ? checkForNestedProperties(refSchema) : false;
+  }
+
+  // Direct nested properties
+  if (schema.properties && Object.keys(schema.properties).length > 0) {
+    return true;
+  }
+
+  // Object type with properties
+  if (schema.type === "object" && schema.properties) {
+    return true;
+  }
+
+  // Array with complex items
+  if (schema.type === "array" && schema.items) {
+    return checkForNestedProperties(schema.items);
+  }
+
+  // Union types
+  if (schema.anyOf && Array.isArray(schema.anyOf) && schema.anyOf.length > 0) {
+    return schema.anyOf.some((subSchema) =>
+      checkForNestedProperties(subSchema)
+    );
+  }
+
+  if (schema.oneOf && Array.isArray(schema.oneOf) && schema.oneOf.length > 0) {
+    return schema.oneOf.some((subSchema) =>
+      checkForNestedProperties(subSchema)
+    );
+  }
+
+  if (schema.allOf && Array.isArray(schema.allOf) && schema.allOf.length > 0) {
+    return schema.allOf.some((subSchema) =>
+      checkForNestedProperties(subSchema)
+    );
+  }
+
+  // Additional properties
+  if (
+    schema.additionalProperties &&
+    typeof schema.additionalProperties === "object"
+  ) {
+    return checkForNestedProperties(schema.additionalProperties);
+  }
+
+  return false;
+}
+
+/**
+ * Render schema properties as expandable tree view
+ * @param {Object} schema - OpenAPI schema object
+ * @param {number} depth - Current depth for indentation
+ * @param {string} propertyId - Unique ID for the property
+ * @returns {string} - HTML representation of schema
+ */
+function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
+  if (!schema || typeof schema !== "object") {
+    return "";
+  }
+
+  let html = "";
+
+  // Handle $ref references
+  if (schema.$ref) {
+    const refPath = schema.$ref.replace("#/", "").split("/");
+    let refSchema = swaggerData;
+    for (const path of refPath) {
+      refSchema = refSchema[path];
+      if (!refSchema) break;
+    }
+    if (refSchema) {
+      return renderSchemaTreeView(refSchema, depth, propertyId);
+    } else {
+      return `<div class="text-red-400">Could not resolve reference: ${schema.$ref}</div>`;
+    }
+  }
+
+  // Handle allOf - merge all schemas
+  if (schema.allOf && Array.isArray(schema.allOf)) {
+    const merged = { properties: {}, required: [] };
+
+    schema.allOf.forEach((subSchema) => {
+      if (subSchema.$ref) {
+        // Resolve reference
+        const refPath = subSchema.$ref.replace("#/", "").split("/");
+        let refSchema = swaggerData;
+        for (const path of refPath) {
+          refSchema = refSchema[path];
+          if (!refSchema) break;
+        }
+        if (refSchema) {
+          if (refSchema.properties) {
+            Object.assign(merged.properties, refSchema.properties);
+          }
+          if (refSchema.required) {
+            merged.required.push(...refSchema.required);
+          }
+        }
+      } else if (subSchema.properties) {
+        Object.assign(merged.properties, subSchema.properties);
+        if (subSchema.required) {
+          merged.required.push(...subSchema.required);
+        }
+      }
+    });
+
+    if (Object.keys(merged.properties).length > 0) {
+      return renderSchemaTreeView(merged, depth, propertyId);
+    }
+  }
+
+  // Handle anyOf - show all possible schemas
+  if (schema.anyOf && Array.isArray(schema.anyOf) && schema.anyOf.length > 0) {
+    let html = `<div class="schema-row" data-level="${depth}" style="margin-left: ${
+      depth * 24
+    }px;">
+      <div class="border-line"></div>
+      <div class="schema-content">
+        <div class="property-main-row">
+          <div class="expand-button" onclick="toggleSchemaProperty('${propertyId}_anyof')" role="button">
+            <svg class="chevron-icon" viewBox="0 0 320 512">
+              <path fill="currentColor" d="M96 480c-8.188 0-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L242.8 256L73.38 86.63c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l192 192c12.5 12.5 12.5 32.75 0 45.25l-192 192C112.4 476.9 104.2 480 96 480z"></path>
+            </svg>
+          </div>
+          <div class="property-info">
+            <div class="property-name">anyOf (${
+              schema.anyOf.length
+            } options)</div>
+            <span class="property-type">union</span>
+          </div>
+        </div>
+        <div class="property-description">One of the following schemas</div>
+      </div>
+    </div>
+    <div id="${propertyId}_anyof" class="nested-properties" style="display: none;">`;
+
+    schema.anyOf.forEach((subSchema, index) => {
+      const optionId = `${propertyId}_anyof_${index}`;
+      const optionHasNested = checkForNestedProperties(subSchema);
+
+      html += `<div class="schema-row" data-level="${
+        depth + 1
+      }" style="margin-left: ${(depth + 1) * 24}px;">
+        <div class="border-line"></div>
+        <div class="schema-content">
+          <div class="property-main-row">`;
+
+      // Add expand button if option has nested properties
+      if (optionHasNested) {
+        html += `<div class="expand-button" onclick="toggleSchemaProperty('${optionId}')" role="button">
+          <svg class="chevron-icon" viewBox="0 0 320 512">
+            <path fill="currentColor" d="M96 480c-8.188 0-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L242.8 256L73.38 86.63c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l192 192c12.5 12.5 12.5 32.75 0 45.25l-192 192C112.4 476.9 104.2 480 96 480z"></path>
+          </svg>
+        </div>`;
+      } else {
+        html += `<div class="expand-button-spacer"></div>`;
+      }
+
+      html += `<div class="property-info">
+              <div class="property-name">Option ${index + 1}</div>
+              <span class="property-type">${getSchemaType(subSchema)}</span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+      // Add nested content if exists
+      if (optionHasNested) {
+        html += `<div id="${optionId}" class="nested-properties" style="display: none;">`;
+        html += renderSchemaTreeView(subSchema, depth + 2, optionId);
+        html += `</div>`;
+      }
+    });
+
+    html += `</div>`;
+    return html;
+  }
+
+  // Handle oneOf - show all possible schemas
+  if (schema.oneOf && Array.isArray(schema.oneOf) && schema.oneOf.length > 0) {
+    let html = `<div class="schema-row" data-level="${depth}" style="margin-left: ${
+      depth * 24
+    }px;">
+      <div class="border-line"></div>
+      <div class="schema-content">
+        <div class="property-main-row">
+          <div class="expand-button" onclick="toggleSchemaProperty('${propertyId}_oneof')" role="button">
+            <svg class="chevron-icon" viewBox="0 0 320 512">
+              <path fill="currentColor" d="M96 480c-8.188 0-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L242.8 256L73.38 86.63c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l192 192c12.5 12.5 12.5 32.75 0 45.25l-192 192C112.4 476.9 104.2 480 96 480z"></path>
+            </svg>
+          </div>
+          <div class="property-info">
+            <div class="property-name">oneOf (${
+              schema.oneOf.length
+            } options)</div>
+            <span class="property-type">union</span>
+          </div>
+        </div>
+        <div class="property-description">Exactly one of the following schemas</div>
+      </div>
+    </div>
+    <div id="${propertyId}_oneof" class="nested-properties" style="display: none;">`;
+
+    schema.oneOf.forEach((subSchema, index) => {
+      const optionId = `${propertyId}_oneof_${index}`;
+      const optionHasNested = checkForNestedProperties(subSchema);
+
+      html += `<div class="schema-row" data-level="${
+        depth + 1
+      }" style="margin-left: ${(depth + 1) * 24}px;">
+        <div class="border-line"></div>
+        <div class="schema-content">
+          <div class="property-main-row">`;
+
+      // Add expand button if option has nested properties
+      if (optionHasNested) {
+        html += `<div class="expand-button" onclick="toggleSchemaProperty('${optionId}')" role="button">
+          <svg class="chevron-icon" viewBox="0 0 320 512">
+            <path fill="currentColor" d="M96 480c-8.188 0-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L242.8 256L73.38 86.63c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l192 192c12.5 12.5 12.5 32.75 0 45.25l-192 192C112.4 476.9 104.2 480 96 480z"></path>
+          </svg>
+        </div>`;
+      } else {
+        html += `<div class="expand-button-spacer"></div>`;
+      }
+
+      html += `<div class="property-info">
+              <div class="property-name">Option ${index + 1}</div>
+              <span class="property-type">${getSchemaType(subSchema)}</span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+      // Add nested content if exists
+      if (optionHasNested) {
+        html += `<div id="${optionId}" class="nested-properties" style="display: none;">`;
+        html += renderSchemaTreeView(subSchema, depth + 2, optionId);
+        html += `</div>`;
+      }
+    });
+
+    html += `</div>`;
+    return html;
+  }
+
+  // Handle object schema (with or without explicit type)
+  if (
+    (schema.type === "object" && schema.properties) ||
+    (schema.properties && !schema.type)
+  ) {
+    const requiredFields = schema.required || [];
+    const properties = schema.properties;
+
+    Object.keys(properties).forEach((key, index) => {
+      const prop = properties[key];
+      const isRequired = requiredFields.includes(key);
+      const currentId = `${propertyId}_${key}`;
+      const hasNestedProperties = checkForNestedProperties(prop);
+
+      html += `<div class="schema-row" data-level="${depth}" style="margin-left: ${
+        depth * 24
+      }px;">`;
+
+      // Border line
+      html += `<div class="border-line"></div>`;
+
+      // Content container
+      html += `<div class="schema-content">`;
+
+      // Main property row
+      html += `<div class="property-main-row">`;
+
+      // Expand/collapse button for nested objects
+      if (hasNestedProperties) {
+        html += `<div class="expand-button" onclick="toggleSchemaProperty('${currentId}')" role="button">
+                   <svg class="chevron-icon" viewBox="0 0 320 512">
+                     <path fill="currentColor" d="M96 480c-8.188 0-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L242.8 256L73.38 86.63c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l192 192c12.5 12.5 12.5 32.75 0 45.25l-192 192C112.4 476.9 104.2 480 96 480z"></path>
+                   </svg>
+                 </div>`;
+      } else {
+        html += `<div class="expand-button-spacer"></div>`;
+      }
+
+      // Property name and type
+      html += `<div class="property-info">
+                 <div class="property-name">${key}</div>
+                 <span class="property-type">${getSchemaType(prop)}</span>
+               </div>`;
+
+      // Required indicator
+      html += `<div class="property-indicators">
+                 <span class="property-required ${
+                   isRequired ? "required" : "optional"
+                 }">
+                   ${isRequired ? "required" : ""}
+                 </span>
+               </div>`;
+
+      html += `</div>`; // End property-main-row
+
+      // Description
+      if (prop.description) {
+        html += `<div class="property-description">${prop.description}</div>`;
+      }
+
+      // Example
+      if (!hasNestedProperties) {
+        const exampleValue = generateSchemaExample(prop);
+        html += `<div class="property-example">
+                   <span>Example:</span>
+                   <span class="example-value">${JSON.stringify(
+                     exampleValue
+                   )}</span>
+                 </div>`;
+      }
+
+      html += `</div>`; // End schema-content
+      html += `</div>`; // End schema-row
+
+      // Nested properties (initially hidden)
+      if (hasNestedProperties) {
+        html += `<div id="${currentId}" class="nested-properties" style="display: none;">`;
+        if (prop.type === "object" || prop.properties) {
+          html += renderSchemaTreeView(prop, depth + 1, currentId);
+        } else if (prop.type === "array" && prop.items) {
+          // Show array items with proper tree structure
+          const itemsId = `${currentId}_items`;
+          const itemsHasNested = checkForNestedProperties(prop.items);
+
+          html += `<div class="schema-row" data-level="${
+            depth + 1
+          }" style="margin-left: ${(depth + 1) * 24}px;">
+            <div class="border-line"></div>
+            <div class="schema-content">
+              <div class="property-main-row">`;
+
+          // Add expand button if items have nested properties
+          if (itemsHasNested) {
+            html += `<div class="expand-button" onclick="toggleSchemaProperty('${itemsId}')" role="button">
+              <svg class="chevron-icon" viewBox="0 0 320 512">
+                <path fill="currentColor" d="M96 480c-8.188 0-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L242.8 256L73.38 86.63c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l192 192c12.5 12.5 12.5 32.75 0 45.25l-192 192C112.4 476.9 104.2 480 96 480z"></path>
+              </svg>
+            </div>`;
+          } else {
+            html += `<div class="expand-button-spacer"></div>`;
+          }
+
+          html += `<div class="property-info">
+                  <div class="property-name">items</div>
+                  <span class="property-type">${getSchemaType(
+                    prop.items
+                  )}</span>
+                </div>
+              </div>
+              <div class="property-description">Array item type</div>
+            </div>
+          </div>`;
+
+          // Add nested content if exists
+          if (itemsHasNested) {
+            html += `<div id="${itemsId}" class="nested-properties" style="display: none;">`;
+            html += renderSchemaTreeView(prop.items, depth + 2, itemsId);
+            html += `</div>`;
+          }
+        } else if (
+          prop.anyOf &&
+          Array.isArray(prop.anyOf) &&
+          prop.anyOf.length > 0
+        ) {
+          // Show anyOf options
+          prop.anyOf.forEach((subSchema, index) => {
+            const optionId = `${currentId}_anyof_${index}`;
+            const optionHasNested = checkForNestedProperties(subSchema);
+
+            html += `<div class="schema-row" data-level="${
+              depth + 1
+            }" style="margin-left: ${(depth + 1) * 24}px;">
+              <div class="border-line"></div>
+              <div class="schema-content">
+                <div class="property-main-row">`;
+
+            // Add expand button if option has nested properties
+            if (optionHasNested) {
+              html += `<div class="expand-button" onclick="toggleSchemaProperty('${optionId}')" role="button">
+                <svg class="chevron-icon" viewBox="0 0 320 512">
+                  <path fill="currentColor" d="M96 480c-8.188 0-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L242.8 256L73.38 86.63c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l192 192c12.5 12.5 12.5 32.75 0 45.25l-192 192C112.4 476.9 104.2 480 96 480z"></path>
+                </svg>
+              </div>`;
+            } else {
+              html += `<div class="expand-button-spacer"></div>`;
+            }
+
+            html += `<div class="property-info">
+                    <div class="property-name">Option ${index + 1}</div>
+                    <span class="property-type">${getSchemaType(
+                      subSchema
+                    )}</span>
+                  </div>
+                </div>
+                <div class="property-description">One of the possible schemas</div>
+              </div>
+            </div>`;
+
+            // Add nested content if exists
+            if (optionHasNested) {
+              html += `<div id="${optionId}" class="nested-properties" style="display: none;">`;
+              html += renderSchemaTreeView(subSchema, depth + 2, optionId);
+              html += `</div>`;
+            }
+          });
+        } else if (
+          prop.oneOf &&
+          Array.isArray(prop.oneOf) &&
+          prop.oneOf.length > 0
+        ) {
+          // Show oneOf options
+          prop.oneOf.forEach((subSchema, index) => {
+            const optionId = `${currentId}_oneof_${index}`;
+            const optionHasNested = checkForNestedProperties(subSchema);
+
+            html += `<div class="schema-row" data-level="${
+              depth + 1
+            }" style="margin-left: ${(depth + 1) * 24}px;">
+              <div class="border-line"></div>
+              <div class="schema-content">
+                <div class="property-main-row">`;
+
+            // Add expand button if option has nested properties
+            if (optionHasNested) {
+              html += `<div class="expand-button" onclick="toggleSchemaProperty('${optionId}')" role="button">
+                <svg class="chevron-icon" viewBox="0 0 320 512">
+                  <path fill="currentColor" d="M96 480c-8.188 0-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L242.8 256L73.38 86.63c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l192 192c12.5 12.5 12.5 32.75 0 45.25l-192 192C112.4 476.9 104.2 480 96 480z"></path>
+                </svg>
+              </div>`;
+            } else {
+              html += `<div class="expand-button-spacer"></div>`;
+            }
+
+            html += `<div class="property-info">
+                    <div class="property-name">Option ${index + 1}</div>
+                    <span class="property-type">${getSchemaType(
+                      subSchema
+                    )}</span>
+                  </div>
+                </div>
+                <div class="property-description">Exactly one of the possible schemas</div>
+              </div>
+            </div>`;
+
+            // Add nested content if exists
+            if (optionHasNested) {
+              html += `<div id="${optionId}" class="nested-properties" style="display: none;">`;
+              html += renderSchemaTreeView(subSchema, depth + 2, optionId);
+              html += `</div>`;
+            }
+          });
+        } else if (
+          prop.allOf &&
+          Array.isArray(prop.allOf) &&
+          prop.allOf.length > 0
+        ) {
+          // Show allOf schemas
+          prop.allOf.forEach((subSchema, index) => {
+            const optionId = `${currentId}_allof_${index}`;
+            const optionHasNested = checkForNestedProperties(subSchema);
+
+            html += `<div class="schema-row" data-level="${
+              depth + 1
+            }" style="margin-left: ${(depth + 1) * 24}px;">
+              <div class="border-line"></div>
+              <div class="schema-content">
+                <div class="property-main-row">`;
+
+            // Add expand button if option has nested properties
+            if (optionHasNested) {
+              html += `<div class="expand-button" onclick="toggleSchemaProperty('${optionId}')" role="button">
+                <svg class="chevron-icon" viewBox="0 0 320 512">
+                  <path fill="currentColor" d="M96 480c-8.188 0-16.38-3.125-22.62-9.375c-12.5-12.5-12.5-32.75 0-45.25L242.8 256L73.38 86.63c-12.5-12.5-12.5-32.75 0-45.25s32.75-12.5 45.25 0l192 192c12.5 12.5 12.5 32.75 0 45.25l-192 192C112.4 476.9 104.2 480 96 480z"></path>
+                </svg>
+              </div>`;
+            } else {
+              html += `<div class="expand-button-spacer"></div>`;
+            }
+
+            html += `<div class="property-info">
+                    <div class="property-name">Schema ${index + 1}</div>
+                    <span class="property-type">${getSchemaType(
+                      subSchema
+                    )}</span>
+                  </div>
+                </div>
+                <div class="property-description">All of the schemas must match</div>
+              </div>
+            </div>`;
+
+            // Add nested content if exists
+            if (optionHasNested) {
+              html += `<div id="${optionId}" class="nested-properties" style="display: none;">`;
+              html += renderSchemaTreeView(subSchema, depth + 2, optionId);
+              html += `</div>`;
+            }
+          });
+        }
+        html += `</div>`;
+      }
+    });
+  } else if (schema.type === "array" && schema.items) {
+    html += renderSchemaTreeView(schema.items, depth, propertyId + "_items");
+  }
+
+  return html;
+}
+
+/**
+ * Toggle schema property visibility
+ * @param {string} propertyId - Property ID to toggle
+ */
+function toggleSchemaProperty(propertyId) {
+  const element = document.getElementById(propertyId);
+  const button = document.querySelector(`[onclick*="${propertyId}"]`);
+
+  if (element && button) {
+    const isHidden = element.style.display === "none";
+    element.style.display = isHidden ? "block" : "none";
+
+    // Rotate chevron
+    const chevron = button.querySelector(".chevron-icon");
+    if (chevron) {
+      chevron.style.transform = isHidden ? "rotate(90deg)" : "rotate(0deg)";
+    }
+  }
+}
+
+/**
+ * Get schema type as string
+ * @param {Object} schema - OpenAPI schema object
+ * @returns {string} - Type string
+ */
+function getSchemaType(schema) {
+  if (!schema) return "unknown";
+
+  if (schema.type) {
+    if (schema.type === "array" && schema.items) {
+      return `array[${getSchemaType(schema.items)}]`;
+    }
+    return schema.type;
+  }
+
+  if (schema.properties) return "object";
+  if (schema.items) return "array";
+  if (schema.anyOf) return `anyOf[${schema.anyOf.length}]`;
+  if (schema.oneOf) return `oneOf[${schema.oneOf.length}]`;
+  if (schema.allOf) return `allOf[${schema.allOf.length}]`;
+  if (schema.$ref) return "reference";
+
+  return "unknown";
 }
 
 /**
