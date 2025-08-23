@@ -533,6 +533,7 @@ function renderEndpointDetails() {
 
   const html = `
     <header class="mb-8">
+      <p class="text-sm text-gray-400-custom mb-1">${endpoint.tags[0]}</p>
       <div class="flex items-center justify-between mb-2 bg-[--bg-secondary]">
         <h1 class="text-3xl font-bold text-gray-300-custom">
           ${endpoint.summary || endpoint.operationId || path}
@@ -567,7 +568,7 @@ function renderEndpointDetails() {
                ${path
                  .split("/")
                  .map((part, index) => {
-                   return `<div class="text-sm font-medium text-gray-800 dark:text-white min-w-max">${part}</div>`;
+                   return `<div class="text-sm font-medium text-[var(--text-primary)]  min-w-max">${part}</div>`;
                  })
                  .join("/")}
             </div>
@@ -1941,7 +1942,7 @@ function renderCodeExample() {
         </div>
         <div class="flex flex-1 overflow-hidden">
           <div data-state="active" data-orientation="horizontal" role="tabpanel" aria-labelledby="radix-_r_p_-trigger-0" id="radix-_r_p_-content-0" tabindex="0" class="w-full min-w-full max-w-full h-full max-h-full" style="animation-duration: 0s;">
-            <div class="w-0 min-w-full max-w-full !p-0 h-full bg-gray-900-custom relative text-sm leading-6 children:!my-0 children:!shadow-none children:!bg-transparent transition-[height] duration-300 ease-in-out [&_*]:ring-0 [&_*]:outline-none [&_*]:focus:ring-0 [&_*]:focus:outline-none [&_pre>code]:pr-[3rem] [&_pre>code>span.line-highlight]:min-w-[calc(100%+3rem)] [&_pre>code>span.line-diff]:min-w-[calc(100%+3rem)] rounded-[14px] overflow-auto overflow-x-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-black/15 hover:scrollbar-thumb-black/20 active:scrollbar-thumb-black/20 dark:scrollbar-thumb-white/20 dark:hover:scrollbar-thumb-white/25 dark:active:scrollbar-thumb-white/25" data-component-part="code-block-root" style="font-variant-ligatures: none; height: 100%;">
+            <div class="w-0 min-w-full max-w-full !p-0 h-full bg-gray-900-custom relative text-sm leading-6 children:!my-0 children:!shadow-none children:!bg-transparent transition-[height] duration-300 ease-in-out [&_*]:ring-0 [&_*]:outline-none [&_*]:focus:ring-0 [&_*]:focus:outline-none [&_pre>code]:pr-[3rem] [&_pre>code>span.line-highlight]:min-w-[calc(100%+3rem)] [&_pre>code>span.line-diff]:min-w-[calc(100%+3rem)] rounded-[14px] overflow-auto overflow-x-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-black/15 hover:scrollbar-thumb-black/20 active:scrollbar-thumb-black/20 dark:scrollbar-thumb-white/20 dark:hover:scrollbar-thumb-white/25 dark:active:scrollbar-thumb-white/25 text-[12px]" data-component-part="code-block-root" style="font-variant-ligatures: none; height: 100%;">
             <pre class="p-4"><span class="line"><span class="keyword">curl</span> <span class="option">--request</span> <span class="method">${method}</span> <span class="separator"> \</span></span>
 <span class="line">  <span class="option">--url</span> <span class="string">${getBaseUrl()}${path}</span> <span class="separator"> \</span></span>
 <span class="line">  <span class="option">--header</span> <span class="string">'Authorization: Bearer &lt;token&gt;'</span> <span class="separator"> \</span></span>
