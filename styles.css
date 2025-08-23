@@ -10,6 +10,7 @@
   --bg-card: #0b0c0e;
   --bg-input: #0b0c0e;
   --bg-hover: #1a1a1a;
+  --border-header: #111111;
 
   --text-primary: #e5e5e5;
   --text-secondary: #d1d5db;
@@ -48,13 +49,14 @@
 
 /* Light Theme */
 [data-theme="light"] {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f9fafb;
+  --bg-primary: #f9fafb;
+  --bg-secondary: #ffffff;
   --bg-tertiary: #f3f4f6;
   --bg-quaternary: #e5e7eb;
   --bg-card: #ffffff;
   --bg-input: #ffffff;
   --bg-hover: #f3f4f6;
+  --border-header: #ececec;
 
   --text-primary: #1f2937;
   --text-secondary: #374151;
@@ -92,7 +94,8 @@
 }
 
 .language-lua,
-.language-json {
+.language-json,
+.hljs {
   background-color: var(--code-bg-secondary) !important;
 }
 
@@ -107,11 +110,12 @@ body {
 
 /* Header Styles */
 header {
-  background-color: var(--bg-primary);
+  background-color: var(--bg-secondary);
   /* border-bottom: 1px solid var(--border-primary); */
   position: relative;
   z-index: 1000;
   width: 100%;
+  border-bottom: 0.5px solid var(--border-header);
 }
 
 header nav a {
@@ -148,11 +152,11 @@ h1 {
 
 /* Theme-aware Custom Classes */
 .bg-gray-900-custom {
-  background-color: var(--bg-tertiary);
+  background-color: var(--bg-secondary);
 }
 
 .bg-gray-800-custom {
-  background-color: var(--bg-tertiary);
+  background-color: var(--bg-secondary);
 }
 
 .bg-gray-700-custom {
@@ -648,7 +652,7 @@ textarea:focus {
   position: relative;
   background-color: var(--bg-secondary) !important;
   border-radius: 8px;
-  padding: 16px;
+  /* padding: 16px; */
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 

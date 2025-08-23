@@ -435,7 +435,7 @@ function renderEndpointDetails() {
             </div>
             
             <!-- Schema Tree View -->
-            <div class="bg-gray-900-custom rounded-lg p-4 overflow-x-auto mb-4">
+            <div class="bg-gray-900-custom rounded-lg overflow-x-auto mb-4">
               <h4 class="text-sm font-semibold text-gray-300-custom mb-3">Request Body Schema</h4>
               <div class="schema-tree-view text-sm">
                 ${renderSchemaTreeView(jsonContent.schema, 0, "request_body")}
@@ -445,7 +445,7 @@ function renderEndpointDetails() {
             <!-- Example JSON -->
             <div class="mt-4">
               <h4 class="text-sm font-semibold text-gray-300-custom mb-2">Example Request Body</h4>
-              <pre class="bg-gray-900-custom text-gray-300-custom p-4 rounded-lg text-sm overflow-x-auto"><code class="">${
+              <pre class="bg-gray-900-custom text-gray-300-custom  rounded-lg text-sm overflow-x-auto"><code class="">${
                 hljs.highlight(
                   JSON.stringify(
                     generateSchemaExample(jsonContent.schema),
@@ -552,7 +552,7 @@ function renderEndpointDetails() {
 
   const html = `
     <header class="mb-8">
-      <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center justify-between mb-2 bg-[--bg-secondary]">
         <h1 class="text-3xl font-bold text-gray-300-custom">
           ${endpoint.summary || endpoint.operationId || path}
         </h1>
