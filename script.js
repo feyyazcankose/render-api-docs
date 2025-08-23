@@ -574,7 +574,9 @@ function renderEndpointDetails() {
             </div>
          </div>
       </div>
-      <button id="try-it-btn" class="tryit-button flex items-center justify-center px-3 h-9 text-white font-medium rounded-xl mouse-pointer disabled:opacity-70 hover:opacity-80 gap-1.5 bg-[#3064E3]" data-testid="try-it-button">
+      <button id="try-it-btn" class="tryit-button flex items-center justify-center px-3 h-9 text-white font-medium rounded-xl mouse-pointer disabled:opacity-70 hover:opacity-80 gap-1.5 bg-${getMethodColor(
+        method
+      )}-700" data-testid="try-it-button">
          <span>Try it</span>
          <svg class="w-3 h-3 bg-white" style="mask-image: url(&quot;https://d3gk2c5xim1je2.cloudfront.net/v6.6.0/solid/play.svg&quot;); mask-repeat: no-repeat; mask-position: center center;"></svg>
       </button>

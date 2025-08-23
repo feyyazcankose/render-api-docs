@@ -170,7 +170,7 @@ h1 {
 }
 
 .text-gray-300-custom {
-  color: var(--text-primary);
+  color: var(--text-tertiary);
 }
 
 .border-gray-700-custom {
@@ -986,4 +986,8 @@ textarea:focus {
 .border-standard {
   border-width: 1px;
   border-color: var(--border-request-header);
+}
+
+.code-group {
+  max-height: 600px !important;
 }
