@@ -1935,63 +1935,107 @@ function renderCodeExample() {
   }
 
   const sidebarContent = `
-    <div class="space-y-6">
-      <div class="code-block">
-        <div class="code-header">
-          <span class="code-header-title">${
-            endpoint.summary || endpoint.operationId
-          }</span>
-          <div class="code-header-icons">
-            <span class="text-gray-400-custom text-sm">cURL</span>
-            <span class="material-icons text-gray-400-custom cursor-pointer text-sm" onclick="copyToClipboard(\`${curlCommand.replace(
-              /`/g,
-              "\\`"
-            )}\`)" title="Copy cURL command">content_copy</span>
+    <div class="w-full xl:w-[28rem] gap-6 grid grid-rows-[repeat(auto-fit,minmax(0,min-content))] grid-rows relative max-h-[calc(100%-32px)] min-h-[18rem]">
+      <!-- Request Code Block -->
+      <div dir="ltr" data-orientation="horizontal" class="code-group p-0.5 flex flex-col not-prose relative overflow-hidden rounded-2xl border border-gray-950/10 dark:border-white/10 my-0 bg-gray-50 dark:bg-white/5 dark:codeblock-dark text-gray-950 dark:text-gray-50 codeblock-light">
+        <div class="flex items-center justify-between gap-2 relative px-2.5 py-2 bg-gray-800-custom " data-component-part="code-group-tab-bar">
+          <div class="flex items-center gap-1.5 text-xs font-medium min-w-0">
+            <span class="truncate text-gray-300-custom">${
+              endpoint.summary || endpoint.operationId || path
+            }</span>
+          </div>
+          <div class="flex items-center justify-end shrink-0 gap-1.5">
+            <button type="button" id="radix-_r_q_" aria-haspopup="menu" aria-expanded="false" data-state="closed" class="group disabled:pointer-events-none [&>span]:line-clamp-1 rounded-lg overflow-hidden group outline-none flex items-center py-0.5 gap-1 text-gray-950/50 dark:text-white/50 group-hover:text-gray-950/70 dark:group-hover:text-white/70 select-none bg-transparent dark:bg-transparent pb-1 text-xs font-medium cursor-default">
+              <div class="flex gap-1 items-center pl-2.5 pr-1.5 py-[5px] rounded-[10px] border text-gray-500 dark:text-gray-400 cursor-pointer hover:bg-gray-200/50 dark:hover:bg-gray-700/70 hover:text-primary dark:hover:text-primary-light border-transparent">
+                <svg class="w-3.5 h-3.5 shrink-0" style="mask-image: url('https://d3gk2c5xim1je2.cloudfront.net/devicon/bash.svg'); mask-repeat: no-repeat; mask-position: center center; mask-size: 100%; background-color: currentcolor;"></svg>
+                <p class="truncate font-medium">cURL</p>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevrons-up-down w-3.5 h-3.5 shrink-0">
+                  <path d="m7 15 5 5 5-5"></path>
+                  <path d="m7 9 5-5 5 5"></path>
+                </svg>
+              </div>
+            </button>
+            <div class="z-10 relative">
+              <button class="h-[26px] w-[26px] flex items-center justify-center rounded-md backdrop-blur peer group/copy-button" data-testid="copy-code-button" aria-label="Copy the contents from the code block" onclick="copyToClipboard(\`${curlCommand.replace(
+                /`/g,
+                "\\`"
+              )}\`)">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400 group-hover/copy-button:text-gray-500 dark:text-white/40 dark:group-hover/copy-button:text-white/60">
+                  <path d="M14.25 5.25H7.25C6.14543 5.25 5.25 6.14543 5.25 7.25V14.25C5.25 15.3546 6.14543 16.25 7.25 16.25H14.25C15.3546 16.25 16.25 15.3546 16.25 14.25V7.25C16.25 6.14543 15.3546 5.25 14.25 5.25Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <path d="M2.80103 11.998L1.77203 5.07397C1.61003 3.98097 2.36403 2.96397 3.45603 2.80197L10.38 1.77297C11.313 1.63397 12.19 2.16297 12.528 3.00097" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+              </button>
+              <div aria-hidden="true" class="absolute top-11 left-1/2 transform whitespace-nowrap -translate-x-1/2 -translate-y-1/2 peer-hover:opacity-100 opacity-0 text-white rounded-lg px-1.5 py-0.5 text-xs bg-primary-dark">Copy</div>
+            </div>
+            <div class="z-10 relative">
+              
+              <div aria-hidden="true" class="absolute top-11 left-1/2 transform whitespace-nowrap -translate-x-1/2 -translate-y-1/2 peer-hover:opacity-100 opacity-0 text-white rounded-lg px-1.5 py-0.5 text-xs bg-primary-dark">Ask AI</div>
+            </div>
           </div>
         </div>
-        <pre class="code-content"><code>${curlCommand}</code></pre>
+        <div class="flex flex-1 overflow-hidden">
+          <div data-state="active" data-orientation="horizontal" role="tabpanel" aria-labelledby="radix-_r_p_-trigger-0" id="radix-_r_p_-content-0" tabindex="0" class="w-full min-w-full max-w-full h-full max-h-full" style="animation-duration: 0s;">
+            <div class="w-0 min-w-full max-w-full !p-0 h-full bg-gray-900-custom relative text-sm leading-6 children:!my-0 children:!shadow-none children:!bg-transparent transition-[height] duration-300 ease-in-out [&_*]:ring-0 [&_*]:outline-none [&_*]:focus:ring-0 [&_*]:focus:outline-none [&_pre>code]:pr-[3rem] [&_pre>code>span.line-highlight]:min-w-[calc(100%+3rem)] [&_pre>code>span.line-diff]:min-w-[calc(100%+3rem)] rounded-[14px] overflow-auto overflow-x-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-black/15 hover:scrollbar-thumb-black/20 active:scrollbar-thumb-black/20 dark:scrollbar-thumb-white/20 dark:hover:scrollbar-thumb-white/25 dark:active:scrollbar-thumb-white/25" data-component-part="code-block-root" style="font-variant-ligatures: none; height: 100%;">
+            <pre class="shiki shiki-themes  github-light-default dark-plus" style="background-color:transparent;--shiki-dark-bg:transparent;color:#1f2328;--shiki-dark:#f3f7f6"><code >${
+              hljs.highlight(curlCommand, { language: "bash" }).value
+            }</code></pre>  
+            
+            </div>
+          </div>
+        </div>
       </div>
+
       ${Object.keys(endpoint.responses || {})
         .map((statusCode) => {
           const response = endpoint.responses[statusCode];
           const content =
             response.content && response.content["application/json"];
           const isSuccess = statusCode.startsWith("2");
+          const jsonContent = content
+            ? JSON.stringify(generateSchemaExample(content.schema), null, 2)
+            : "No content available";
+
           return `
-          <div class="code-block">
-            <div class="code-header">
-              <div class="flex items-center gap-2">
-                <span class="bg-${
-                  isSuccess ? "green" : "red"
-                }-600 text-white text-sm font-semibold px-2 py-1 rounded">${statusCode}</span>
-                <span class="code-header-title">${
-                  response.description || "Response"
-                }</span>
+          <!-- Response Code Block -->
+          <div dir="ltr" data-orientation="horizontal" class="code-group p-0.5 flex flex-col not-prose relative overflow-hidden rounded-2xl border border-gray-950/10 dark:border-white/10 my-0 bg-gray-50 dark:bg-white/5 dark:codeblock-dark text-gray-950 dark:text-gray-50 codeblock-light">
+            <div class="flex items-center justify-between gap-2 relative px-2.5 py-2 bg-gray-800-custom " data-component-part="code-group-tab-bar">
+              <div role="tablist" aria-orientation="horizontal" class="flex-1 min-w-0 text-xs leading-6 rounded-tl-xl gap-1 flex overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-black/15 hover:scrollbar-thumb-black/20 active:scrollbar-thumb-black/20 dark:scrollbar-thumb-white/20 dark:hover:scrollbar-thumb-white/25 dark:active:scrollbar-thumb-white/25" tabindex="0" data-orientation="horizontal" style="outline: none;">
+                <button type="button" role="tab" aria-selected="true" aria-controls="radix-_r_s_-content-0" data-state="active" id="radix-_r_s_-trigger-0" class="group flex items-center relative gap-1.5 py-1 pb-1.5 outline-none whitespace-nowrap font-medium text-gray-300-custom" tabindex="-1" data-orientation="horizontal" data-radix-collection-item="">
+                  <div class="flex items-center gap-1.5 px-1.5 rounded-lg z-10 group-hover:bg-gray-700-custom group-hover:text-gray-200">${statusCode}</div>
+                  <div class="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-primary dark:bg-primary-light"></div>
+                </button>
               </div>
-              <div class="code-header-icons">
-                <span class="material-icons text-gray-400-custom cursor-pointer text-sm" onclick="copyToClipboard(\`${
-                  content
-                    ? JSON.stringify(
-                        generateSchemaExample(content.schema),
-                        null,
-                        2
-                      ).replace(/`/g, "\\`")
-                    : "No content"
-                }\`)" title="Copy response">content_copy</span>
+              <div class="flex items-center justify-end shrink-0 gap-1.5">
+                <div class="z-10 relative">
+                  <button class="h-[26px] w-[26px] flex items-center justify-center rounded-md backdrop-blur peer group/copy-button" data-testid="copy-code-button" aria-label="Copy the contents from the code block" onclick="copyToClipboard(\`${jsonContent
+                    .replace(/`/g, "\\`")
+                    .replace(/\n/g, "\\n")}\`)">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400 group-hover/copy-button:text-gray-500 dark:text-white/40 dark:group-hover/copy-button:text-white/60">
+                      <path d="M14.25 5.25H7.25C6.14543 5.25 5.25 6.14543 5.25 7.25V14.25C5.25 15.3546 6.14543 16.25 7.25 16.25H14.25C15.3546 16.25 16.25 15.3546 16.25 14.25V7.25C16.25 6.14543 15.3546 5.25 14.25 5.25Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                      <path d="M2.80103 11.998L1.77203 5.07397C1.61003 3.98097 2.36403 2.96397 3.45603 2.80197L10.38 1.77297C11.313 1.63397 12.19 2.16297 12.528 3.00097" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                  </button>
+                  <div aria-hidden="true" class="absolute top-11 left-1/2 transform whitespace-nowrap -translate-x-1/2 -translate-y-1/2 peer-hover:opacity-100 opacity-0 text-white rounded-lg px-1.5 py-0.5 text-xs bg-primary-dark">Copy</div>
+                </div>
+                <div class="z-10 relative">
+                  <div aria-hidden="true" class="absolute top-11 left-1/2 transform whitespace-nowrap -translate-x-1/2 -translate-y-1/2 peer-hover:opacity-100 opacity-0 text-white rounded-lg px-1.5 py-0.5 text-xs bg-primary-dark">Ask AI</div>
+                </div>
               </div>
             </div>
-            <pre class="code-content"><code class="">${
-              content
-                ? hljs.highlight(
-                    JSON.stringify(
-                      generateSchemaExample(content.schema),
-                      null,
-                      2
-                    ),
-                    { language: "json" }
-                  ).value
-                : "No content available"
-            }</code></pre>
+            <div class="flex flex-1 overflow-hidden">
+              <div data-state="active" data-orientation="horizontal" role="tabpanel" aria-labelledby="radix-_r_s_-trigger-0" id="radix-_r_s_-content-0" tabindex="0" class="w-full min-w-full max-w-full h-full max-h-full" style="animation-duration: 0s;">
+                <div class="w-0 min-w-full max-w-full !p-0 h-full bg-gray-900-custom relative text-sm leading-6 children:!my-0 children:!shadow-none children:!bg-transparent transition-[height] duration-300 ease-in-out [&_*]:ring-0 [&_*]:outline-none [&_*]:focus:ring-0 [&_*]:focus:outline-none [&_pre>code]:pr-[3rem] [&_pre>code>span.line-highlight]:min-w-[calc(100%+3rem)] [&_pre>code>span.line-diff]:min-w-[calc(100%+3rem)] rounded-[14px] overflow-auto overflow-x-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-black/15 hover:scrollbar-thumb-black/20 active:scrollbar-thumb-black/20 dark:scrollbar-thumb-white/20 dark:hover:scrollbar-thumb-white/25 dark:active:scrollbar-thumb-white/25" data-component-part="code-block-root" style="font-variant-ligatures: none; height: 100%;">
+                  <div class="font-mono  flex-none h-full text-xs leading-[1.35rem]" data-component-part="code-group-tab-content">
+                    <pre class="shiki shiki-themes github-light-default dark-plus" style="background-color:transparent;--shiki-dark-bg:transparent;color:#1f2328;--shiki-dark:#f3f7f6"><code>${
+                      content
+                        ? hljs.highlight(jsonContent, { language: "json" })
+                            .value
+                        : "No content available"
+                    }</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         `;
         })
