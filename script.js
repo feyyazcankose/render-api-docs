@@ -59,17 +59,6 @@ function switchHighlightTheme(theme) {
     existingLink.remove();
   }
 
-  // Add new theme
-  const newLink = document.createElement("link");
-  newLink.rel = "stylesheet";
-  newLink.href =
-    theme === "light"
-      ? "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css"
-      : "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css";
-
-  document.head.appendChild(newLink);
-
-  // Re-highlight all code blocks
   setTimeout(() => {
     document.querySelectorAll("pre code").forEach((block) => {
       hljs.highlightElement(block);
@@ -194,13 +183,17 @@ function generateNavigation() {
                 .map(
                   (endpoint) => `
                 <li class="group">
-                  <a class="flex items-center justify-between px-3 py-1 rounded endpoint-link cursor-pointer sidebar-item" 
+                  <a class="flex items-center justify-between px-3 py-1 rounded endpoint-link cursor-pointer sidebar-item gap-2" 
                      data-path="${endpoint.path}" 
                      data-method="${endpoint.method.toLowerCase()}">
-                    <div class="flex items-center flex-1 min-w-0">
-                      <span class="bg-${getMethodColor(
+                    <div class="flex items-center flex-1 min-w-0 gap-2">
+                      <span class="method-pill rounded-lg font-bold px-1.5 py-0.5 rounded-lg text-[0.55rem] text-sm leading-5 bg-${getMethodColor(
                         endpoint.method
-                      )}-500 text-xs font-bold text-white rounded px-2 py-0.5 mr-2 text-center inline-block" style="width: 50px;">
+                      )}-400/20 dark:bg-${getMethodColor(
+                    endpoint.method
+                  )}-400/20 text-${getMethodColor(
+                    endpoint.method
+                  )}-700 dark:text-${getMethodColor(endpoint.method)}-400">
                         ${getMethodDisplayName(endpoint.method)}
                       </span>
                       <div class="tooltip w-40">
@@ -373,27 +366,15 @@ function renderEndpointDetails() {
                 </td>
               </tr>
               <tr>
-                <td class="text-gray-400-custom pt-2 pb-4" colspan="3">
-                  <p>${param.description || ""}</p>
                   ${
-                    param.schema?.example
-                      ? `<p class="mt-2">Example: <code class="available-option">${param.schema.example}</code></p>`
+                    param.description?.length > 0
+                      ? `
+                      <td class="text-gray-400-custom pt-2 pb-4" colspan="4">
+                        ${param.description}
+                      </td>
+                    `
                       : ""
                   }
-                  ${
-                    param.schema?.enum
-                      ? `<div class="flex items-center gap-2 mt-2">
-                          <span class="text-gray-400-custom">Available options:</span>
-                          ${param.schema.enum
-                            .map(
-                              (val) =>
-                                `<span class="available-option">${val}</span>`
-                            )
-                            .join("")}
-                         </div>`
-                      : ""
-                  }
-                </td>
               </tr>
             `
               )
@@ -412,7 +393,7 @@ function renderEndpointDetails() {
     if (jsonContent && jsonContent.schema) {
       requestBodyHtml = `
         <section class="mb-8">
-          <h2 class="text-xl font-semibold section-title mb-4">Request Body</h2>
+          <h2 class="text-xl font-semibold section-title my-4 mt-10">Request Body</h2>
           <div class="bg-gray-800-custom rounded-lg p-4">
             <div class="flex items-center justify-between text-sm mb-2">
               <div class="flex items-center gap-2">
@@ -436,8 +417,8 @@ function renderEndpointDetails() {
             
             <!-- Schema Tree View -->
             <div class="bg-gray-900-custom rounded-lg overflow-x-auto mb-4">
-              <h4 class="text-sm font-semibold text-gray-300-custom mb-3">Request Body Schema</h4>
-              <div class="schema-tree-view text-sm">
+              <h4 class="text-sm font-semibold text-gray-300-custom mb-3 mt-5">Request Body Schema</h4>
+              <div class="schema-tree-view text-sm ">
                 ${renderSchemaTreeView(jsonContent.schema, 0, "request_body")}
               </div>
             </div>
@@ -568,18 +549,37 @@ function renderEndpointDetails() {
         ${endpoint.description || ""}
       </p>
     </header>
-    <div class="api-endpoint">
-      <div class="flex items-center flex-grow">
-        <span class="api-method bg-${getMethodColor(method)}-500 text-white">
-          ${getMethodDisplayName(method)}
-        </span>
-        <span class="api-path">${path}</span>
+    <div class="flex w-full flex-col bg-background-light dark:bg-background-dark border-standard rounded-2xl p-1.5 mb-4">
+      <div class="flex items-center space-x-1.5">
+      <div class="relative flex-1 flex gap-2 min-w-0 rounded-xl items-center cursor-pointer p-1.5 border-standard">
+         <div class="method-pill rounded-lg font-bold px-1.5 py-0.5 text-sm leading-5 bg-${getMethodColor(
+           method
+         )}-400/20 dark:bg-${getMethodColor(
+    method
+  )}-400/20 text-${getMethodColor(method)}-700 dark:text-${getMethodColor(
+    method
+  )}-400"> ${getMethodDisplayName(method)}</div>
+         <div class="flex items-center space-x-2 overflow-x-auto flex-1 no-scrollbar">
+            <div class="group flex items-center flex-1 gap-0.5 font-mono">
+               <div class="absolute right-0 p-2 bg-background-light dark:bg-background-dark rounded-lg hidden group-hover:block">
+                  <svg class="w-4 h-4 bg-gray-400 dark:bg-white/30" style="mask-image: url(&quot;https://d3gk2c5xim1je2.cloudfront.net/v6.6.0/regular/clone.svg&quot;); mask-repeat: no-repeat; mask-position: center center;"></svg>
+               </div>
+               ${path
+                 .split("/")
+                 .map((part, index) => {
+                   return `<div class="text-sm font-medium text-gray-800 dark:text-white min-w-max">${part}</div>`;
+                 })
+                 .join("/")}
+            </div>
+         </div>
       </div>
-      <button class="minimal-btn-secondary" id="try-it-btn">
-        <span>Try it</span>
-        <span class="material-icons text-sm ml-1">expand_more</span>
+      <button id="try-it-btn" class="tryit-button flex items-center justify-center px-3 h-9 text-white font-medium rounded-xl mouse-pointer disabled:opacity-70 hover:opacity-80 gap-1.5 bg-[#3064E3]" data-testid="try-it-button">
+         <span>Try it</span>
+         <svg class="w-3 h-3 bg-white" style="mask-image: url(&quot;https://d3gk2c5xim1je2.cloudfront.net/v6.6.0/solid/play.svg&quot;); mask-repeat: no-repeat; mask-position: center center;"></svg>
       </button>
+      </div>
     </div>
+
     <section class="mb-8 minimal-form-container" id="try-it-section">
       <h2 class="text-lg font-medium text-gray-300-custom mb-6">Try it out</h2>
       <div class="space-y-6" id="try-it-form">
@@ -722,36 +722,30 @@ function getAuthorizationHtml() {
 
       if (scheme.type === "http" && scheme.scheme === "bearer") {
         authHtml += `
-          <section class="mb-8">
+          <section class="my-16">
             <h2 class="section-title">Authorization</h2>
-            <table class="param-table">
-              <tbody>
-                <tr>
-                  <td>
-                    <div class="param-name">Authorization</div>
-                  </td>
-                  <td>
-                    <div class="param-type">string</div>
-                  </td>
-                  <td>
-                    <div class="param-type">header</div>
-                  </td>
-                  <td>
-                    <span class="required">required</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="text-gray-400-custom pt-2 pb-4" colspan="4">
-                    ${
-                      scheme.description ||
-                      "Bearer authentication header of the form"
-                    } 
-                    <code class="available-option">Bearer &lt;token&gt;</code> where 
-                    <code class="available-option">&lt;token&gt;</code> is your auth token.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <p class="text-gray-400-custom pt-2 pb-4">
+            <div class="flex items-center flex-wrap gap-2">
+              <div class="absolute -top-1.5">
+                  <a href="#authorization-authorization" class="-ml-10 flex items-center opacity-0 border-0 group-hover/param-head:opacity-100 py-2 [.expandable-content_&amp;]:-ml-[2.1rem]" aria-label="Navigate to header">
+                    &ZeroWidthSpace;
+                    <div class="w-6 h-6 rounded-md flex items-center justify-center shadow-sm text-gray-400 dark:text-white/50 dark:bg-background-dark dark:brightness-[1.35] dark:ring-1 dark:hover:brightness-150 bg-white ring-1 ring-gray-400/30 dark:ring-gray-700/25 hover:ring-gray-400/60 dark:hover:ring-white/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="gray" height="12px" viewBox="0 0 576 512">
+                          <path d="M0 256C0 167.6 71.6 96 160 96h72c13.3 0 24 10.7 24 24s-10.7 24-24 24H160C98.1 144 48 194.1 48 256s50.1 112 112 112h72c13.3 0 24 10.7 24 24s-10.7 24-24 24H160C71.6 416 0 344.4 0 256zm576 0c0 88.4-71.6 160-160 160H344c-13.3 0-24-10.7-24-24s10.7-24 24-24h72c61.9 0 112-50.1 112-112s-50.1-112-112-112H344c-13.3 0-24-10.7-24-24s10.7-24 24-24h72c88.4 0 160 71.6 160 160zM184 232H392c13.3 0 24 10.7 24 24s-10.7 24-24 24H184c-13.3 0-24-10.7-24-24s10.7-24 24-24z"></path>
+                        </svg>
+                    </div>
+                  </a>
+              </div>
+              <div class="font-semibold text-primary dark:text-primary-light cursor-pointer overflow-wrap-anywhere" data-component-part="field-name">Authorization</div>
+              <div class="inline items-center gap-2 text-xs font-medium [&amp;_div]:inline [&amp;_div]:mr-2 [&amp;_div]:leading-5" data-component-part="field-meta">
+                  <div class="flex items-center px-2 py-0.5 rounded-md bg-gray-100/50 dark:bg-white/5 text-gray-600 dark:text-gray-200 font-medium break-all" data-component-part="field-info-pill"><span>string</span></div>
+                  <div class="flex items-center px-2 py-0.5 rounded-md bg-gray-100/50 dark:bg-white/5 text-gray-600 dark:text-gray-200 font-medium break-all" data-component-part="field-info-pill"><span>header</span></div>
+                  <div class="px-2 py-0.5 rounded-md bg-red-100/50 dark:bg-red-400/10 text-red-600 dark:text-red-300 font-medium whitespace-nowrap" data-component-part="field-required-pill">required</div>
+              </div>
+            </div>
+          
+
+            <p class="whitespace-pre-line mt-5">${`Bearer authentication header of the form <code ><span>Bearer token</span></code>, where <code ><span>token</span></code> is your auth token.`}</p>
           </section>
         `;
       } else if (scheme.type === "apiKey") {
@@ -774,14 +768,17 @@ function getAuthorizationHtml() {
                     <span class="required">required</span>
                   </td>
                 </tr>
-                <tr>
-                  <td class="text-gray-400-custom pt-2 pb-4" colspan="4">
-                    ${
-                      scheme.description ||
-                      `API Key sent via ${scheme.in} parameter`
-                    }
-                  </td>
-                </tr>
+                ${
+                  scheme.description.length > 0
+                    ? `
+                    <tr>
+                      <td class="text-gray-400-custom pt-2 pb-4" colspan="4">
+                        ${scheme.description}
+                      </td>
+                    </tr>
+                  `
+                    : ""
+                }
               </tbody>
             </table>
           </section>
@@ -1901,43 +1898,12 @@ function renderCodeExample() {
   const path = currentEndpoint.path;
   const method = currentEndpoint.method.toUpperCase();
   const endpoint = currentEndpoint.data;
-
-  let curlCommand = `curl --request ${method} \\\n  --url '${getBaseUrl()}${path}'`;
-
-  // Add authorization headers only if endpoint requires them
-  const endpointSecurity = endpoint.security;
-  if (
-    endpointSecurity &&
-    endpointSecurity.length > 0 &&
-    swaggerData.components &&
-    swaggerData.components.securitySchemes
-  ) {
-    const schemes = swaggerData.components.securitySchemes;
-
-    endpointSecurity.forEach((securityRequirement) => {
-      Object.keys(securityRequirement).forEach((schemeName) => {
-        const scheme = schemes[schemeName];
-        if (!scheme) return;
-
-        if (scheme.type === "http" && scheme.scheme === "bearer") {
-          curlCommand += ` \\\n  --header 'Authorization: Bearer <token>'`;
-        } else if (scheme.type === "apiKey" && scheme.in === "header") {
-          curlCommand += ` \\\n  --header '${scheme.name}: <${scheme.name}>'`;
-        }
-      });
-    });
-  }
-
-  // Add content type for requests with body
-  if (endpoint.requestBody) {
-    curlCommand += ` \\\n  --header 'Content-Type: application/json'`;
-    curlCommand += ` \\\n  --data '{}'`;
-  }
+  const curlCommand = `curl --request ${method} --url ${path} --header 'Authorization: Bearer <token>' --header 'Content-Type: application/json' '${path}'`;
 
   const sidebarContent = `
     <div class="w-full xl:w-[28rem] gap-6 grid grid-rows-[repeat(auto-fit,minmax(0,min-content))] grid-rows relative max-h-[calc(100%-32px)] min-h-[18rem]">
       <!-- Request Code Block -->
-      <div dir="ltr" data-orientation="horizontal" class="code-group p-0.5 flex flex-col not-prose relative overflow-hidden rounded-2xl border border-gray-950/10 dark:border-white/10 my-0 bg-gray-50 dark:bg-white/5 dark:codeblock-dark text-gray-950 dark:text-gray-50 codeblock-light">
+      <div dir="ltr" data-orientation="horizontal" class="code-group p-0.5 flex flex-col not-prose relative overflow-hidden rounded-2xl border border-gray-700-custom my-0 bg-gray-800-custom text-gray-300-custom">
         <div class="flex items-center justify-between gap-2 relative px-2.5 py-2 bg-gray-800-custom " data-component-part="code-group-tab-bar">
           <div class="flex items-center gap-1.5 text-xs font-medium min-w-0">
             <span class="truncate text-gray-300-custom">${
@@ -1976,10 +1942,11 @@ function renderCodeExample() {
         <div class="flex flex-1 overflow-hidden">
           <div data-state="active" data-orientation="horizontal" role="tabpanel" aria-labelledby="radix-_r_p_-trigger-0" id="radix-_r_p_-content-0" tabindex="0" class="w-full min-w-full max-w-full h-full max-h-full" style="animation-duration: 0s;">
             <div class="w-0 min-w-full max-w-full !p-0 h-full bg-gray-900-custom relative text-sm leading-6 children:!my-0 children:!shadow-none children:!bg-transparent transition-[height] duration-300 ease-in-out [&_*]:ring-0 [&_*]:outline-none [&_*]:focus:ring-0 [&_*]:focus:outline-none [&_pre>code]:pr-[3rem] [&_pre>code>span.line-highlight]:min-w-[calc(100%+3rem)] [&_pre>code>span.line-diff]:min-w-[calc(100%+3rem)] rounded-[14px] overflow-auto overflow-x-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-black/15 hover:scrollbar-thumb-black/20 active:scrollbar-thumb-black/20 dark:scrollbar-thumb-white/20 dark:hover:scrollbar-thumb-white/25 dark:active:scrollbar-thumb-white/25" data-component-part="code-block-root" style="font-variant-ligatures: none; height: 100%;">
-            <pre class="shiki shiki-themes  github-light-default dark-plus" style="background-color:transparent;--shiki-dark-bg:transparent;color:#1f2328;--shiki-dark:#f3f7f6"><code >${
-              hljs.highlight(curlCommand, { language: "bash" }).value
-            }</code></pre>  
-            
+            <pre class="p-4"><span class="line"><span class="keyword">curl</span> <span class="option">--request</span> <span class="method">${method}</span> <span class="separator"> \</span></span>
+<span class="line">  <span class="option">--url</span> <span class="string">${getBaseUrl()}${path}</span> <span class="separator"> \</span></span>
+<span class="line">  <span class="option">--header</span> <span class="string">'Authorization: Bearer &lt;token&gt;'</span> <span class="separator"> \</span></span>
+<span class="line">  <span class="option">--header</span> <span class="string">'Content-Type: application/json'</span> <span class="separator"> \</span></span>
+<span class="line">  <span class="string">'{}'</span></span></pre>  
             </div>
           </div>
         </div>
@@ -1997,7 +1964,7 @@ function renderCodeExample() {
 
           return `
           <!-- Response Code Block -->
-          <div dir="ltr" data-orientation="horizontal" class="code-group p-0.5 flex flex-col not-prose relative overflow-hidden rounded-2xl border border-gray-950/10 dark:border-white/10 my-0 bg-gray-50 dark:bg-white/5 dark:codeblock-dark text-gray-950 dark:text-gray-50 codeblock-light">
+          <div dir="ltr" data-orientation="horizontal" class="code-group p-0.5 flex flex-col not-prose relative overflow-hidden rounded-2xl border border-gray-700-custom my-0 bg-gray-800-custom text-gray-300-custom">
             <div class="flex items-center justify-between gap-2 relative px-2.5 py-2 bg-gray-800-custom " data-component-part="code-group-tab-bar">
               <div role="tablist" aria-orientation="horizontal" class="flex-1 min-w-0 text-xs leading-6 rounded-tl-xl gap-1 flex overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-black/15 hover:scrollbar-thumb-black/20 active:scrollbar-thumb-black/20 dark:scrollbar-thumb-white/20 dark:hover:scrollbar-thumb-white/25 dark:active:scrollbar-thumb-white/25" tabindex="0" data-orientation="horizontal" style="outline: none;">
                 <button type="button" role="tab" aria-selected="true" aria-controls="radix-_r_s_-content-0" data-state="active" id="radix-_r_s_-trigger-0" class="group flex items-center relative gap-1.5 py-1 pb-1.5 outline-none whitespace-nowrap font-medium text-gray-300-custom" tabindex="-1" data-orientation="horizontal" data-radix-collection-item="">
@@ -2026,12 +1993,12 @@ function renderCodeExample() {
               <div data-state="active" data-orientation="horizontal" role="tabpanel" aria-labelledby="radix-_r_s_-trigger-0" id="radix-_r_s_-content-0" tabindex="0" class="w-full min-w-full max-w-full h-full max-h-full" style="animation-duration: 0s;">
                 <div class="w-0 min-w-full max-w-full !p-0 h-full bg-gray-900-custom relative text-sm leading-6 children:!my-0 children:!shadow-none children:!bg-transparent transition-[height] duration-300 ease-in-out [&_*]:ring-0 [&_*]:outline-none [&_*]:focus:ring-0 [&_*]:focus:outline-none [&_pre>code]:pr-[3rem] [&_pre>code>span.line-highlight]:min-w-[calc(100%+3rem)] [&_pre>code>span.line-diff]:min-w-[calc(100%+3rem)] rounded-[14px] overflow-auto overflow-x-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-black/15 hover:scrollbar-thumb-black/20 active:scrollbar-thumb-black/20 dark:scrollbar-thumb-white/20 dark:hover:scrollbar-thumb-white/25 dark:active:scrollbar-thumb-white/25" data-component-part="code-block-root" style="font-variant-ligatures: none; height: 100%;">
                   <div class="font-mono  flex-none h-full text-xs leading-[1.35rem]" data-component-part="code-group-tab-content">
-                    <pre class="shiki shiki-themes github-light-default dark-plus" style="background-color:transparent;--shiki-dark-bg:transparent;color:#1f2328;--shiki-dark:#f3f7f6"><code>${
+                    <pre class="shiki shiki-themes github-light-default dark-plus p-2 text-[var(--text-primary)]" style="background-color:transparent;--shiki-dark-bg:transparent;color:#1f2328;--shiki-dark:#f3f7f6">${
                       content
                         ? hljs.highlight(jsonContent, { language: "json" })
                             .value
                         : "No content available"
-                    }</code></pre>
+                    }</pre>
                   </div>
                 </div>
               </div>
