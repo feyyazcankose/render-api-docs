@@ -535,7 +535,7 @@ function renderEndpointDetails() {
     <header class="mb-8">
       <p class="text-sm text-gray-400-custom mb-1">${endpoint.tags[0]}</p>
       <div class="flex items-center justify-between mb-2 bg-[--bg-secondary]">
-        <h1 class="text-3xl font-bold text-gray-300-custom">
+        <h1 class="text-3xl font-bold text-[var(--text-primary)]">
           ${endpoint.summary || endpoint.operationId || path}
         </h1>
         <span class="material-icons text-gray-400-custom cursor-pointer copy-icon" 
@@ -583,7 +583,7 @@ function renderEndpointDetails() {
       </div>
     </div>
 
-    <section class="mb-8 minimal-form-container" id="try-it-section">
+    <section class="mb-8 minimal-form-container rounded-2xl" id="try-it-section">
       <h2 class="text-lg font-medium text-gray-300-custom mb-6">Try it out</h2>
       <div class="space-y-6" id="try-it-form">
         <!-- Dynamic form will be generated here -->
@@ -817,6 +817,7 @@ function generateTryItForm() {
         if (!scheme) return;
 
         if (scheme.type === "http" && scheme.scheme === "bearer") {
+          const savedToken = localStorage.getItem("api-docs-auth-token") || "";
           formHtml += `
             <div>
               <label class="block text-sm font-medium text-gray-400-custom mb-2" for="auth-token">
@@ -826,10 +827,13 @@ function generateTryItForm() {
                 })</span>
               </label>
               <input class="w-full px-3 py-2 text-sm rounded-lg" 
-                     id="auth-token" name="auth-token" placeholder="your-jwt-token" type="text" required />
+                     id="auth-token" name="auth-token" placeholder="your-jwt-token" type="text" 
+                     value="${savedToken}" required />
             </div>
           `;
         } else if (scheme.type === "apiKey") {
+          const savedApiKey =
+            localStorage.getItem(`api-docs-apikey-${scheme.name}`) || "";
           formHtml += `
             <div>
               <label class="block text-sm font-medium text-gray-400-custom mb-2" for="${
@@ -843,7 +847,7 @@ function generateTryItForm() {
               <input class="w-full px-3 py-2 text-sm rounded-lg" 
                      id="${scheme.name}" name="${
             scheme.name
-          }" placeholder="your-api-key" type="text" required />
+          }" placeholder="your-api-key" type="text" value="${savedApiKey}" required />
             </div>
           `;
         }
@@ -935,6 +939,33 @@ function generateTryItForm() {
   $("#run-request-btn").on("click", function () {
     executeRequest();
   });
+
+  // Add event listeners to save tokens to localStorage
+  $("#auth-token").on("input", function () {
+    localStorage.setItem("api-docs-auth-token", $(this).val());
+  });
+
+  // Add event listeners for API keys
+  if (
+    endpoint.security &&
+    swaggerData.components &&
+    swaggerData.components.securitySchemes
+  ) {
+    const schemes = swaggerData.components.securitySchemes;
+    endpoint.security.forEach((securityRequirement) => {
+      Object.keys(securityRequirement).forEach((schemeName) => {
+        const scheme = schemes[schemeName];
+        if (scheme && scheme.type === "apiKey") {
+          $(`#${scheme.name}`).on("input", function () {
+            localStorage.setItem(
+              `api-docs-apikey-${scheme.name}`,
+              $(this).val()
+            );
+          });
+        }
+      });
+    });
+  }
 
   // Initialize JSON highlighting for request body
   const textarea = document.getElementById("request-body");
@@ -1173,7 +1204,7 @@ function executeRequest() {
     body: body,
   })
     .then(async (response) => {
-      const responseData = {
+      let responseData = {
         status: response.status,
         statusText: response.statusText,
         headers: Object.fromEntries(response.headers.entries()),
@@ -1183,9 +1214,9 @@ function executeRequest() {
       try {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
-          responseData.data = await response.json();
+          responseData = await response.json();
         } else {
-          responseData.data = await response.text();
+          responseData = await response.text();
         }
       } catch (e) {
         responseData.data = "Unable to parse response body";
@@ -2054,7 +2085,8 @@ function getBaseUrl() {
   if (swaggerData.servers && swaggerData.servers.length > 0) {
     return swaggerData.servers[0].url;
   }
-  return window.location.origin;
+  // window.location.origin
+  return "http://127.0.0.1:8088";
 }
 
 /**
