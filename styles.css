@@ -996,3 +996,7 @@ textarea {
 .code-group {
   max-height: 600px !important;
 }
+
+.mt-60 {
+  margin-top: 40px !important;
+}

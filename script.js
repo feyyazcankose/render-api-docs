@@ -350,12 +350,24 @@ function renderEndpointDetails() {
                 (param) => `
               <tr>
                 <td>
-                  <div class="param-name">${param.name}</div>
+                  <div class="flex items-center justify-between group">
+                    <div class="param-name">${param.name}</div>
+                    <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm opacity-0 group-hover:opacity-100 transition-opacity" 
+                          onclick="copyToClipboard('${param.name}', this)" 
+                          title="Copy parameter name">content_copy</span>
+                  </div>
                 </td>
                 <td>
-                  <div class="param-type">${param.schema?.type || "string"}${
+                  <div class="flex items-center justify-between group">
+                    <div class="param-type">${param.schema?.type || "string"}${
                   param.in === "query" ? "" : ` (${param.in})`
                 }</div>
+                    <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm opacity-0 group-hover:opacity-100 transition-opacity" 
+                          onclick="copyToClipboard('${
+                            param.schema?.type || "string"
+                          }')" 
+                          title="Copy parameter type">content_copy</span>
+                  </div>
                 </td>
                 <td>
                   ${
@@ -369,8 +381,16 @@ function renderEndpointDetails() {
                   ${
                     param.description?.length > 0
                       ? `
-                      <td class="text-gray-400-custom pt-2 pb-4" colspan="4">
-                        ${param.description}
+                      <td class="text-gray-400-custom pt-2 pb-4 group" colspan="4">
+                        <div class="flex items-start justify-between">
+                          <div class="flex-1">${param.description}</div>
+                          <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm opacity-0 group-hover:opacity-100 transition-opacity ml-2" 
+                                onclick="copyToClipboard('${param.description.replace(
+                                  /'/g,
+                                  "\\'"
+                                )}')" 
+                                title="Copy description">content_copy</span>
+                        </div>
                       </td>
                     `
                       : ""
@@ -546,9 +566,23 @@ function renderEndpointDetails() {
               ).replace(/'/g, "\\'")}')" 
               title="Copy endpoint name">content_copy</span>
       </div>
-      <p class="text-gray-400-custom">
-        ${endpoint.description || ""}
-      </p>
+      ${
+        endpoint.description
+          ? `
+        <div class="flex items-start justify-between group">
+          <p class="text-gray-400-custom flex-1">
+            ${endpoint.description}
+          </p>
+          <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm opacity-0 group-hover:opacity-100 transition-opacity ml-2" 
+                onclick="copyToClipboard('${endpoint.description.replace(
+                  /'/g,
+                  "\\'"
+                )}')" 
+                title="Copy description">content_copy</span>
+        </div>
+      `
+          : ""
+      }
     </header>
     <div class="flex w-full flex-col bg-background-light dark:bg-background-dark border-standard rounded-2xl p-1.5 mb-4">
       <div class="flex items-center space-x-1.5">
@@ -563,7 +597,9 @@ function renderEndpointDetails() {
          <div class="flex items-center space-x-2 overflow-x-auto flex-1 no-scrollbar">
             <div class="group flex items-center flex-1 gap-0.5 font-mono">
                <div class="absolute right-0 p-2 bg-background-light dark:bg-background-dark rounded-lg hidden group-hover:block">
-                  <svg class="w-4 h-4 bg-gray-400 dark:bg-white/30" style="mask-image: url(&quot;https://d3gk2c5xim1je2.cloudfront.net/v6.6.0/regular/clone.svg&quot;); mask-repeat: no-repeat; mask-position: center center;"></svg>
+                  <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm" 
+                        onclick="copyToClipboard('${getBaseUrl()}${path}')" 
+                        title="Copy full URL">content_copy</span>
                </div>
                ${path
                  .split("/")
@@ -739,7 +775,12 @@ function getAuthorizationHtml() {
                     </div>
                   </a>
               </div>
-              <div class="font-semibold text-primary dark:text-primary-light cursor-pointer overflow-wrap-anywhere" data-component-part="field-name">Authorization</div>
+              <div class="flex items-center justify-between group">
+                <div class="font-semibold text-primary dark:text-primary-light cursor-pointer overflow-wrap-anywhere" data-component-part="field-name">Authorization</div>
+                <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm opacity-0 group-hover:opacity-100 transition-opacity" 
+                      onclick="copyToClipboard('Authorization')" 
+                      title="Copy field name">content_copy</span>
+              </div>
               <div class="inline items-center gap-2 text-xs font-medium [&amp;_div]:inline [&amp;_div]:mr-2 [&amp;_div]:leading-5" data-component-part="field-meta">
                   <div class="flex items-center px-2 py-0.5 rounded-md bg-gray-100/50 dark:bg-white/5 text-gray-600 dark:text-gray-200 font-medium break-all" data-component-part="field-info-pill"><span>string</span></div>
                   <div class="flex items-center px-2 py-0.5 rounded-md bg-gray-100/50 dark:bg-white/5 text-gray-600 dark:text-gray-200 font-medium break-all" data-component-part="field-info-pill"><span>header</span></div>
@@ -820,12 +861,17 @@ function generateTryItForm() {
           const savedToken = localStorage.getItem("api-docs-auth-token") || "";
           formHtml += `
             <div>
-              <label class="block text-sm font-medium text-gray-400-custom mb-2" for="auth-token">
-                Token <span class="text-red-400 text-xs">*</span>
-                <span class="text-gray-400-custom text-xs ml-1">(${
-                  scheme.description || "Bearer token"
-                })</span>
-              </label>
+              <div class="flex items-center justify-between group mb-2">
+                <label class="block text-sm font-medium text-gray-400-custom" for="auth-token">
+                  Token <span class="text-red-400 text-xs">*</span>
+                  <span class="text-gray-400-custom text-xs ml-1">(${
+                    scheme.description || "Bearer token"
+                  })</span>
+                </label>
+                <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm opacity-0 group-hover:opacity-100 transition-opacity" 
+                      onclick="copyToClipboard('Token')" 
+                      title="Copy field name">content_copy</span>
+              </div>
               <input class="w-full px-3 py-2 text-sm rounded-lg" 
                      id="auth-token" name="auth-token" placeholder="your-jwt-token" type="text" 
                      value="${savedToken}" required />
@@ -836,14 +882,19 @@ function generateTryItForm() {
             localStorage.getItem(`api-docs-apikey-${scheme.name}`) || "";
           formHtml += `
             <div>
-              <label class="block text-sm font-medium text-gray-400-custom mb-2" for="${
-                scheme.name
-              }">
-                ${scheme.name} <span class="text-red-400 text-xs">*</span>
-                <span class="text-gray-400-custom text-xs ml-1">(${
-                  scheme.description || "API Key"
-                })</span>
-              </label>
+              <div class="flex items-center justify-between group mb-2">
+                <label class="block text-sm font-medium text-gray-400-custom" for="${
+                  scheme.name
+                }">
+                  ${scheme.name} <span class="text-red-400 text-xs">*</span>
+                  <span class="text-gray-400-custom text-xs ml-1">(${
+                    scheme.description || "API Key"
+                  })</span>
+                </label>
+                <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm opacity-0 group-hover:opacity-100 transition-opacity" 
+                      onclick="copyToClipboard('${scheme.name}')" 
+                      title="Copy field name">content_copy</span>
+              </div>
               <input class="w-full px-3 py-2 text-sm rounded-lg" 
                      id="${scheme.name}" name="${
             scheme.name
@@ -861,10 +912,11 @@ function generateTryItForm() {
     endpoint.parameters.forEach((param) => {
       formHtml += `
         <div>
-          <label class="block text-sm font-medium text-gray-400-custom mb-2" for="${
-            param.name
-          }">
-            ${param.name} ${
+          <div class="flex items-center justify-between group mb-2">
+            <label class="block text-sm font-medium text-gray-400-custom" for="${
+              param.name
+            }">
+              ${param.name} ${
         param.required
           ? '<span class="text-red-400 text-xs">*</span>'
           : '<span class="text-gray-400-custom text-xs">(optional)</span>'
@@ -873,11 +925,25 @@ function generateTryItForm() {
           ? '<span class="minimal-btn-secondary text-xs px-2 py-0.5 ml-2">path</span>'
           : ""
       }
-          </label>
+            </label>
+            <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm opacity-0 group-hover:opacity-100 transition-opacity" 
+                  onclick="copyToClipboard('${param.name}')" 
+                  title="Copy parameter name">content_copy</span>
+          </div>
           ${generateInputField(param)}
           ${
             param.description
-              ? `<p class="text-xs text-gray-400-custom mt-1">${param.description}</p>`
+              ? `<div class="flex items-start justify-between group mt-1">
+                   <p class="text-xs text-gray-400-custom flex-1">${
+                     param.description
+                   }</p>
+                   <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm opacity-0 group-hover:opacity-100 transition-opacity ml-2" 
+                         onclick="copyToClipboard('${param.description.replace(
+                           /'/g,
+                           "\\'"
+                         )}')" 
+                         title="Copy description">content_copy</span>
+                 </div>`
               : ""
           }
         </div>
@@ -898,13 +964,18 @@ function generateTryItForm() {
 
     formHtml += `
       <div>
-        <label class="block text-sm font-medium text-gray-400-custom mb-2" for="request-body">
-          Request Body ${
-            endpoint.requestBody.required
-              ? '<span class="text-red-400 text-xs">*</span>'
-              : '<span class="text-gray-400-custom text-xs">(optional)</span>'
-          }
-        </label>
+        <div class="flex items-center justify-between group mb-2">
+          <label class="block text-sm font-medium text-gray-400-custom" for="request-body">
+            Request Body ${
+              endpoint.requestBody.required
+                ? '<span class="text-red-400 text-xs">*</span>'
+                : '<span class="text-gray-400-custom text-xs">(optional)</span>'
+            }
+          </label>
+          <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm opacity-0 group-hover:opacity-100 transition-opacity" 
+                onclick="copyToClipboard('Request Body')" 
+                title="Copy field name">content_copy</span>
+        </div>
         <div class="relative json-editor">
           <div class="relative">
             <pre class="text-gray-300-custom text-sm rounded-lg p-3 h-48 overflow-auto font-mono absolute inset-0 pointer-events-none" id="request-body-highlight"></pre>
@@ -1544,9 +1615,14 @@ function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
       }
 
       // Property name and type
-      html += `<div class="property-info">
-                 <div class="property-name">${key}</div>
-                 <span class="property-type">${getSchemaType(prop)}</span>
+      html += `<div class="property-info flex items-center justify-between flex-1 group">
+                 <div class="flex items-center gap-2">
+                   <div class="property-name">${key}</div>
+                   <span class="property-type">${getSchemaType(prop)}</span>
+                 </div>
+                 <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm opacity-0 group-hover:opacity-100 transition-opacity" 
+                       onclick="copyToClipboard('${key}')" 
+                       title="Copy property name">content_copy</span>
                </div>`;
 
       // Required indicator
@@ -1562,17 +1638,32 @@ function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
 
       // Description
       if (prop.description) {
-        html += `<div class="property-description">${prop.description}</div>`;
+        html += `<div class="property-description flex items-start justify-between group">
+                   <div class="flex-1">${prop.description}</div>
+                   <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm opacity-0 group-hover:opacity-100 transition-opacity ml-2" 
+                         onclick="copyToClipboard('${prop.description.replace(
+                           /'/g,
+                           "\\'"
+                         )}')" 
+                         title="Copy description">content_copy</span>
+                 </div>`;
       }
 
       // Example
       if (!hasNestedProperties) {
         const exampleValue = generateSchemaExample(prop);
-        html += `<div class="property-example">
-                   <span>Example:</span>
-                   <span class="example-value">${JSON.stringify(
-                     exampleValue
-                   )}</span>
+        html += `<div class="property-example flex items-center justify-between group">
+                   <div>
+                     <span>Example:</span>
+                     <span class="example-value">${JSON.stringify(
+                       exampleValue
+                     )}</span>
+                   </div>
+                   <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm opacity-0 group-hover:opacity-100 transition-opacity" 
+                         onclick="copyToClipboard('${JSON.stringify(
+                           exampleValue
+                         ).replace(/'/g, "\\'")}')" 
+                         title="Copy example value">content_copy</span>
                  </div>`;
       }
 
@@ -2038,18 +2129,15 @@ function renderCodeExample() {
               </div>
               <div class="flex items-center justify-end shrink-0 gap-1.5">
                 <div class="z-10 relative">
-                  <button class="h-[26px] w-[26px] flex items-center justify-center rounded-md backdrop-blur peer group/copy-button" data-testid="copy-code-button" aria-label="Copy the contents from the code block" onclick="copyToClipboard(\`${jsonContent
-                    .replace(/`/g, "\\`")
-                    .replace(/\n/g, "\\n")}\`)">
+                  <button class="h-[26px] w-[26px] flex items-center justify-center rounded-md backdrop-blur peer group/copy-button" data-testid="copy-code-button" data-json-content='${jsonContent}' aria-label="Copy the contents from the code block" 
+                  onclick="copyToClipboard(this.getAttribute('data-json-content'))"
+                  >
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-400 group-hover/copy-button:text-gray-500 dark:text-white/40 dark:group-hover/copy-button:text-white/60">
                       <path d="M14.25 5.25H7.25C6.14543 5.25 5.25 6.14543 5.25 7.25V14.25C5.25 15.3546 6.14543 16.25 7.25 16.25H14.25C15.3546 16.25 16.25 15.3546 16.25 14.25V7.25C16.25 6.14543 15.3546 5.25 14.25 5.25Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
                       <path d="M2.80103 11.998L1.77203 5.07397C1.61003 3.98097 2.36403 2.96397 3.45603 2.80197L10.38 1.77297C11.313 1.63397 12.19 2.16297 12.528 3.00097" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
                     </svg>
                   </button>
                   <div aria-hidden="true" class="absolute top-11 left-1/2 transform whitespace-nowrap -translate-x-1/2 -translate-y-1/2 peer-hover:opacity-100 opacity-0 text-white rounded-lg px-1.5 py-0.5 text-xs bg-primary-dark">Copy</div>
-                </div>
-                <div class="z-10 relative">
-                  <div aria-hidden="true" class="absolute top-11 left-1/2 transform whitespace-nowrap -translate-x-1/2 -translate-y-1/2 peer-hover:opacity-100 opacity-0 text-white rounded-lg px-1.5 py-0.5 text-xs bg-primary-dark">Ask AI</div>
                 </div>
               </div>
             </div>
@@ -2146,14 +2234,16 @@ function copyToClipboard(text, element = null) {
   navigator.clipboard
     .writeText(text)
     .then(() => {
-      if (element) {
-        showCopySuccess(element);
-      } else {
-        const clickedElement = event?.target;
-        if (clickedElement) {
-          showCopySuccess(clickedElement);
-        }
+      // Get the clicked element from the event or use the passed element
+      let targetElement = element;
+      if (!targetElement && window.event) {
+        targetElement = window.event.target || window.event.srcElement;
       }
+
+      if (targetElement) {
+        showCopySuccess(targetElement);
+      }
+
       showToast("Copied to clipboard!", "success");
     })
     .catch((err) => {
@@ -2195,26 +2285,54 @@ function showToast(message, type = "info") {
   }
 
   const toast = document.createElement("div");
-  toast.className = `copy-toast fixed top-4 right-4 px-4 py-2 rounded-lg text-white text-sm font-medium z-50 transform transition-all duration-300 translate-x-full opacity-0`;
+  toast.className = "copy-toast";
+
+  // Set all styles inline to avoid Tailwind conflicts
+  toast.style.cssText = `
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 9999;
+    pointer-events: none;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: all 0.3s ease-in-out;
+    min-width: 200px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  `;
 
   if (type === "success") {
-    toast.classList.add("bg-green-600");
+    toast.style.backgroundColor = "#059669"; // green-600
   } else if (type === "error") {
-    toast.classList.add("bg-red-600");
+    toast.style.backgroundColor = "#dc2626"; // red-600
   } else {
-    toast.classList.add("bg-blue-600");
+    toast.style.backgroundColor = "#2563eb"; // blue-600
   }
 
   toast.textContent = message;
   document.body.appendChild(toast);
 
+  // Show toast
   setTimeout(() => {
-    toast.classList.remove("translate-x-full", "opacity-0");
+    toast.style.transform = "translateX(0)";
+    toast.style.opacity = "1";
   }, 10);
 
+  // Hide and remove toast
   setTimeout(() => {
-    toast.classList.add("translate-x-full", "opacity-0");
-    setTimeout(() => toast.remove(), 300);
+    toast.style.transform = "translateX(100%)";
+    toast.style.opacity = "0";
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.remove();
+      }
+    }, 300);
   }, 3000);
 }
 
