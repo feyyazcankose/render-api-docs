@@ -105,16 +105,17 @@ Main JavaScript functions in `script.js`:
 - `generateNavigation()`: Creates sidebar navigation
 - `renderEndpointDetails()`: Displays endpoint information
 - `generateTryItForm()`: Creates interactive forms
-- `executeRequest()`: Handles API requests (currently simulated)
+- `executeRequest()`: Handles real API requests with proper error handling
 
 ### API Integration
 
-To connect to real APIs, modify the `executeRequest()` function in `script.js`:
+The application now makes real API requests to your endpoints. Key features:
 
-1. Replace the simulated response with actual `fetch()` calls
-2. Handle CORS if testing cross-origin requests
-3. Add authentication headers as needed
-4. Implement proper error handling
+1. **Real HTTP Requests**: Uses `fetch()` API to make actual calls to your backend
+2. **CORS Handling**: Ensure your API server has proper CORS configuration
+3. **Authentication**: Supports Bearer tokens and API keys from OpenAPI security schemes
+4. **Error Handling**: Displays network errors and HTTP error responses
+5. **Response Display**: Shows actual HTTP status codes, headers, and response data
 
 ## 🔧 Configuration
 

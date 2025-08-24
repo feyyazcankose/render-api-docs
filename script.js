@@ -1164,24 +1164,54 @@ function executeRequest() {
   $("#response-container").show();
   $("#response-output").html("Loading...");
 
-  // Make request (simulated for demo)
-  setTimeout(() => {
-    const mockResponse = {
-      message: "This is a simulated response",
-      endpoint: url,
-      method: method,
-      timestamp: new Date().toISOString(),
-      data: generateSchemaExample(
-        endpoint.responses["200"]?.content?.["application/json"]?.schema
-      ),
-    };
+  // Make actual API request
+  const fullUrl = getBaseUrl() + url;
 
-    const jsonString = JSON.stringify(mockResponse, null, 2);
-    const highlightedCode = hljs.highlight(jsonString, {
-      language: "json",
-    }).value;
-    $("#response-output").html(highlightedCode);
-  }, 1000);
+  fetch(fullUrl, {
+    method: method,
+    headers: headers,
+    body: body,
+  })
+    .then(async (response) => {
+      const responseData = {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        timestamp: new Date().toISOString(),
+      };
+
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          responseData.data = await response.json();
+        } else {
+          responseData.data = await response.text();
+        }
+      } catch (e) {
+        responseData.data = "Unable to parse response body";
+      }
+
+      const jsonString = JSON.stringify(responseData, null, 2);
+      const highlightedCode = hljs.highlight(jsonString, {
+        language: "json",
+      }).value;
+      $("#response-output").html(highlightedCode);
+    })
+    .catch((error) => {
+      const errorResponse = {
+        error: "Request failed",
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      };
+
+      const jsonString = JSON.stringify(errorResponse, null, 2);
+      const highlightedCode = hljs.highlight(jsonString, {
+        language: "json",
+      }).value;
+      $("#response-output").html(highlightedCode);
+
+      showToast("Request failed: " + error.message, "error");
+    });
 }
 
 /**
@@ -2024,7 +2054,7 @@ function getBaseUrl() {
   if (swaggerData.servers && swaggerData.servers.length > 0) {
     return swaggerData.servers[0].url;
   }
-  return "https://api.example.com";
+  return window.location.origin;
 }
 
 /**
