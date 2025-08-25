@@ -124,6 +124,238 @@ header {
   z-index: 1003 !important;
 }
 
+/* Tutorial content styles - Dark Mode */
+.tutorial-content {
+  line-height: 1.7;
+  max-width: none;
+  color: #e5e7eb;
+}
+
+.tutorial-content h1,
+.tutorial-content h2,
+.tutorial-content h3,
+.tutorial-content h4,
+.tutorial-content h5,
+.tutorial-content h6 {
+  scroll-margin-top: 120px;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.tutorial-content h1 {
+  color: #ffffff;
+  border-bottom: 2px solid #374151;
+  padding-bottom: 0.5rem;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.tutorial-content h2 {
+  color: #f3f4f6;
+  border-bottom: 1px solid #374151;
+  padding-bottom: 0.25rem;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.tutorial-content h3 {
+  color: #d1d5db;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.tutorial-content p {
+  color: #d1d5db;
+  margin-bottom: 1rem;
+  line-height: 1.8;
+}
+
+.tutorial-content strong {
+  color: #f9fafb;
+  font-weight: 600;
+}
+
+.tutorial-content em {
+  color: #e5e7eb;
+  font-style: italic;
+}
+
+.tutorial-content ul,
+.tutorial-content ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.tutorial-content li {
+  color: #d1d5db;
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.tutorial-content pre {
+  font-family: "Fira Code", "Monaco", "Cascadia Code", "Roboto Mono", monospace;
+  background-color: #111827;
+  border: 1px solid #374151;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+
+.tutorial-content code {
+  font-family: "Fira Code", "Monaco", "Cascadia Code", "Roboto Mono", monospace;
+}
+
+.tutorial-content :not(pre) > code {
+  background-color: #1f2937;
+  color: #fbbf24;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  border: 1px solid #374151;
+}
+
+.tutorial-content blockquote {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-left: 4px solid #3b82f6;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  border-radius: 0.25rem;
+  color: #cbd5e1;
+  font-style: italic;
+}
+
+.tutorial-content a {
+  color: #60a5fa;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.tutorial-content a:hover {
+  color: #93c5fd;
+}
+
+.tutorial-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem 0;
+  background-color: #1f2937;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.tutorial-content th,
+.tutorial-content td {
+  border: 1px solid #374151;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.tutorial-content th {
+  background-color: #374151;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.tutorial-content td {
+  color: #d1d5db;
+}
+
+.tutorial-content hr {
+  border: none;
+  border-top: 1px solid #374151;
+  margin: 2rem 0;
+}
+
+/* Tutorial Table of Contents */
+.tutorial-toc {
+  position: sticky;
+  top: 2rem;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+}
+
+/* Light Mode Tutorial Styles */
+[data-theme="light"] .tutorial-content {
+  color: #374151;
+}
+
+[data-theme="light"] .tutorial-content h1 {
+  color: #111827;
+  border-bottom-color: #e5e7eb;
+}
+
+[data-theme="light"] .tutorial-content h2 {
+  color: #1f2937;
+  border-bottom-color: #e5e7eb;
+}
+
+[data-theme="light"] .tutorial-content h3 {
+  color: #374151;
+}
+
+[data-theme="light"] .tutorial-content p {
+  color: #4b5563;
+}
+
+[data-theme="light"] .tutorial-content strong {
+  color: #111827;
+}
+
+[data-theme="light"] .tutorial-content em {
+  color: #374151;
+}
+
+[data-theme="light"] .tutorial-content li {
+  color: #4b5563;
+}
+
+[data-theme="light"] .tutorial-content pre {
+  background-color: #f9fafb;
+  border-color: #e5e7eb;
+  color: #374151;
+}
+
+[data-theme="light"] .tutorial-content :not(pre) > code {
+  background-color: #f3f4f6;
+  color: #dc2626;
+  border-color: #e5e7eb;
+}
+
+[data-theme="light"] .tutorial-content blockquote {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #4b5563;
+}
+
+[data-theme="light"] .tutorial-content a {
+  color: #2563eb;
+}
+
+[data-theme="light"] .tutorial-content a:hover {
+  color: #1d4ed8;
+}
+
+[data-theme="light"] .tutorial-content table {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .tutorial-content th {
+  background-color: #f9fafb;
+  color: #111827;
+  border-color: #e5e7eb;
+}
+
+[data-theme="light"] .tutorial-content td {
+  color: #374151;
+  border-color: #e5e7eb;
+}
+
+[data-theme="light"] .tutorial-content hr {
+  border-top-color: #e5e7eb;
+}
+
 header nav a {
   color: var(--text-tertiary);
   text-decoration: none;

@@ -18,7 +18,51 @@ $(document).ready(function () {
   initializeTheme();
   initializeMobileDrawer();
   loadSwaggerData();
+
+  // Sayfa yüklendiğinde URL'i kontrol et
+  checkInitialURL();
 });
+
+// Sayfa yüklendiğinde URL'deki tutorial'ı kontrol et ve yükle
+function checkInitialURL() {
+  const currentHash = window.location.hash;
+
+  if (currentHash && currentHash.startsWith("#tutorials/")) {
+    // Tutorials moduna geç
+    feature = "tutorials";
+
+    // Önce tutorials sidebar'ını yükle
+    loadTutorials().then(() => {
+      // Sonra makaleyi yükle
+      setTimeout(() => {
+        const pathParts = currentHash.replace("#tutorials/", "").split("/");
+        if (pathParts.length >= 2) {
+          const [folder, articleName] = pathParts;
+
+          // Sidebar'da ilgili makaleyi aktif yap
+          const articleLink = $(
+            `.endpoint-link[href^="#tutorials/${folder}/${articleName}"]`
+          );
+          if (articleLink.length) {
+            // Accordion'ı aç
+            const accordionContent = articleLink.closest(".accordion-content");
+            const accordionToggle = accordionContent.prev(".accordion-toggle");
+
+            accordionContent.show();
+            accordionToggle.find(".material-icons").text("expand_more");
+
+            // Makaleyi aktif yap
+            $(".endpoint-link").removeClass("nav-link active");
+            articleLink.addClass("nav-link active");
+          }
+
+          // Makaleyi yükle
+          loadTutorialContent(currentHash);
+        }
+      }, 500); // Sidebar yüklenmesi için kısa bir bekleme
+    });
+  }
+}
 
 /**
  * Initialize theme system
@@ -2728,54 +2772,368 @@ $(document).on("click", "#tutorials-link", function () {
   loadTutorials();
 });
 
-function loadTutorials() {
-  const mainSidebar = $("#main-sidebar");
-  mainSidebar.html(`
-    <div>
-        <ul class="space-y-2 text-sm">
-          <li>
-            <a class="flex items-center px-3 py-1 rounded accordion-toggle cursor-pointer sidebar-item !justify-start text-gray-400-custom">
-              <span>Page Builder</span>
-              <span class="material-icons text-sm transform transition-transform ml-5">chevron_right</span>
+async function loadTutorials() {
+  try {
+    // Dinamik olarak tutorials klasörünü tara
+    const tutorialStructure = await loadTutorialStructure();
+
+    const mainSidebar = $("#main-sidebar");
+    let sidebarHtml = `<div><ul class="space-y-2 text-sm">`;
+
+    // Her klasör için accordion oluştur
+    for (const [folderName, articles] of Object.entries(tutorialStructure)) {
+      const folderDisplayName = folderName
+        .replace(/-/g, " ")
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+
+      sidebarHtml += `
+        <li>
+          <a class="flex items-center px-3 py-1 rounded accordion-toggle cursor-pointer sidebar-item !justify-start text-gray-400-custom">
+            <span>${folderDisplayName}</span>
+            <span class="material-icons text-sm transform transition-transform ml-5">chevron_right</span>
+          </a>
+          <ul class="ml-4 mt-2 space-y-2 accordion-content" style="display: none;">
+      `;
+
+      // Her md dosyası için link oluştur
+      articles.forEach((article) => {
+        const articleDisplayName = article.name
+          .replace(/\.md$/, "")
+          .replace(/-/g, " ")
+          .split(" ")
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" ");
+
+        sidebarHtml += `
+          <li class="group">
+            <a href="#tutorials/${folderName}/${article.name.replace(
+          ".md",
+          ""
+        )}" class="flex items-center justify-between px-3 py-1 rounded endpoint-link cursor-pointer sidebar-item gap-2">
+              <div class="flex items-center flex-1 min-w-0 gap-2">
+                <div class="tooltip w-40">
+                  <span class="truncate block">${articleDisplayName}</span>
+                  <span class="tooltiptext">${articleDisplayName}</span>
+                </div>
+              </div>
             </a>
-            <ul class="ml-4 mt-2 space-y-2 accordion-content" style="display: none;">
-             <li class="group">
-                  <a href="#tutorials/page-builder/overview" class="flex items-center justify-between px-3 py-1 rounded endpoint-link cursor-pointer sidebar-item gap-2">
-                    <div class="flex items-center flex-1 min-w-0 gap-2">
-                      <div class="tooltip w-40">
-                        <span class="truncate block">Overview</span>
-                        <span class="tooltiptext">Overview</span>
-                      </div>
-                    </div>
-                  </a>
-                </li>
-            </ul>
           </li>
-        </ul>
+        `;
+      });
+
+      sidebarHtml += `</ul></li>`;
+    }
+
+    sidebarHtml += `</ul></div>`;
+    mainSidebar.html(sidebarHtml);
+
+    // Accordion toggle handler ekle - event delegation kullan
+    $(document)
+      .off("click", ".accordion-toggle")
+      .on("click", ".accordion-toggle", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const $this = $(this);
+        const content = $this.next(".accordion-content");
+        const icon = $this.find(".material-icons");
+
+        // Diğer açık accordion'ları kapat
+        $(".accordion-content")
+          .not(content)
+          .slideUp(300, function () {
+            $(this)
+              .prev(".accordion-toggle")
+              .find(".material-icons")
+              .text("chevron_right");
+          });
+
+        // Bu accordion'ı toggle et
+        content.slideToggle(400, function () {
+          if (content.is(":visible")) {
+            icon.text("expand_more");
+          } else {
+            icon.text("chevron_right");
+          }
+        });
+      });
+  } catch (error) {
+    console.error("Error loading tutorials:", error);
+    const mainSidebar = $("#main-sidebar");
+    mainSidebar.html(`
+      <div class="text-center py-8">
+        <p class="text-red-400">Error loading tutorials</p>
       </div>
-  `);
+    `);
+  }
 }
 
-function loadTutorialContent(clickedId) {
-  const mainContent = $("main");
-  mainContent.html(`
-    <div class="text-center py-16">
-      <h1 class="text-4xl font-bold text-gray-300-custom mb-6">Tutorial Content</h1>
-      <p class="text-gray-400-custom text-lg mb-8">
-        Welcome to the tutorial content. Select a tutorial from the sidebar to get started. ${clickedId}
-      </p>
-    </div>
-  `);
+// Tutorials klasör yapısını yükle
+async function loadTutorialStructure() {
+  const structure = {};
 
-  // Clear code examples sidebar
-  $("aside:last-child").html(`
-    <div class="text-center py-16">
-      <div class="text-gray-400-custom">
-        <span class="material-icons text-4xl mb-4">In this tutorial</span>
-        <p>In this tutorial</p>
+  try {
+    // Bilinen klasörleri kontrol et
+    const knownFolders = ["architectural", "page-builder"];
+
+    for (const folder of knownFolders) {
+      try {
+        // Klasördeki md dosyalarını kontrol et
+        const articles = [];
+
+        // Bilinen md dosyalarını kontrol et
+        const possibleFiles = [
+          "overview.md",
+          "getting-started.md",
+          "advanced.md",
+          "configuration.md",
+        ];
+
+        for (const file of possibleFiles) {
+          try {
+            const response = await fetch(`./tutorials/${folder}/${file}`);
+            if (response.ok) {
+              articles.push({
+                name: file,
+                path: `tutorials/${folder}/${file}`,
+              });
+            }
+          } catch (e) {
+            // Dosya yoksa devam et
+          }
+        }
+
+        if (articles.length > 0) {
+          structure[folder] = articles;
+        }
+      } catch (e) {
+        // Klasör yoksa devam et
+      }
+    }
+  } catch (error) {
+    console.error("Error scanning tutorial structure:", error);
+  }
+
+  return structure;
+}
+
+async function loadTutorialContent(clickedId) {
+  try {
+    // clickedId formatı: #tutorials/page-builder/overview
+    // Bu formatı parse et
+    const pathParts = clickedId.replace("#tutorials/", "").split("/");
+    if (pathParts.length !== 2) {
+      throw new Error("Invalid tutorial path format");
+    }
+
+    const [folder, articleName] = pathParts;
+    const filePath = `./tutorials/${folder}/${articleName}.md`;
+
+    // Md dosyasını yükle
+    const response = await fetch(filePath);
+    if (!response.ok) {
+      throw new Error(`Tutorial not found: ${filePath}`);
+    }
+
+    const markdownContent = await response.text();
+
+    // Markdown'ı HTML'e çevir
+    const htmlContent = convertMarkdownToHTML(markdownContent);
+
+    // Main content'e render et
+    const mainContent = $("main");
+    mainContent.html(`
+      <article class="tutorial-content max-w-none">
+        ${htmlContent}
+      </article>
+    `);
+
+    // Table of contents oluştur - current path'i geç
+    const currentPath = `#tutorials/${folder}/${articleName}`;
+    generateTableOfContents(markdownContent, currentPath);
+  } catch (error) {
+    console.error("Error loading tutorial:", error);
+
+    const mainContent = $("main");
+    mainContent.html(`
+      <div class="text-center py-16">
+        <h1 class="text-4xl font-bold text-red-400 mb-6">Error Loading Tutorial</h1>
+        <p class="text-gray-400-custom text-lg mb-8">
+          Could not load tutorial: ${clickedId}
+        </p>
+        <p class="text-gray-500 text-sm">
+          ${error.message}
+        </p>
       </div>
+    `);
+
+    // Clear sidebar
+    $("aside:last-child").html(`
+      <div class="text-center py-16">
+        <div class="text-gray-400-custom">
+          <span class="material-icons text-4xl mb-4">error</span>
+          <p>Error loading content</p>
+        </div>
+      </div>
+    `);
+  }
+}
+
+// Markdown'ı HTML'e çeviren basit fonksiyon
+function convertMarkdownToHTML(markdown) {
+  let html = markdown
+    // Headers
+    .replace(
+      /^### (.*$)/gim,
+      '<h3 id="$1" class="text-xl font-semibold mt-8 mb-4 text-gray-200">$1</h3>'
+    )
+    .replace(
+      /^## (.*$)/gim,
+      '<h2 id="$1" class="text-2xl font-semibold mt-10 mb-6 text-gray-100">$1</h2>'
+    )
+    .replace(
+      /^# (.*$)/gim,
+      '<h1 id="$1" class="text-3xl font-bold mt-12 mb-8 text-white">$1</h1>'
+    )
+
+    // Bold and italic
+    .replace(
+      /\*\*(.*?)\*\*/gim,
+      '<strong class="font-semibold text-gray-200">$1</strong>'
+    )
+    .replace(/\*(.*?)\*/gim, '<em class="italic text-gray-300">$1</em>')
+
+    // Code blocks
+    .replace(
+      /```([\s\S]*?)```/gim,
+      '<pre class="bg-gray-900 rounded-lg p-4 overflow-x-auto my-4"><code class="text-gray-300">$1</code></pre>'
+    )
+    .replace(
+      /`([^`]*)`/gim,
+      '<code class="bg-gray-800 text-gray-300 px-2 py-1 rounded text-sm">$1</code>'
+    )
+
+    // Lists
+    .replace(/^\- (.*$)/gim, '<li class="ml-4 mb-2 text-gray-300">• $1</li>')
+    .replace(/^\* (.*$)/gim, '<li class="ml-4 mb-2 text-gray-300">• $1</li>')
+
+    // Links
+    .replace(
+      /\[([^\]]*)\]\(([^\)]*)\)/gim,
+      '<a href="$2" class="text-blue-400 hover:text-blue-300 underline">$1</a>'
+    )
+
+    // Block quotes
+    .replace(
+      /^> (.*$)/gim,
+      '<blockquote class="border-l-4 border-blue-500 pl-4 italic text-gray-400 my-4">$1</blockquote>'
+    )
+
+    // Paragraphs
+    .replace(/\n\n/gim, '</p><p class="mb-4 text-gray-300 leading-relaxed">')
+    .replace(/\n/gim, "<br>");
+
+  // Wrap in paragraphs
+  html = '<p class="mb-4 text-gray-300 leading-relaxed">' + html + "</p>";
+
+  // Clean up empty paragraphs
+  html = html.replace(
+    /<p class="mb-4 text-gray-300 leading-relaxed"><\/p>/gim,
+    ""
+  );
+
+  return html;
+}
+
+// Table of contents oluştur
+function generateTableOfContents(markdown, currentTutorialPath) {
+  const headings = [];
+  const lines = markdown.split("\n");
+
+  lines.forEach((line, index) => {
+    if (line.match(/^#{1,3} /)) {
+      const level = (line.match(/^#+/) || [""])[0].length;
+      const title = line.replace(/^#+\s*/, "");
+      const id = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
+      headings.push({
+        level: level,
+        title: title,
+        id: id,
+        line: index,
+      });
+    }
+  });
+
+  if (headings.length === 0) {
+    $("aside:last-child").html(`
+      <div class="text-center py-16">
+        <div class="text-gray-400-custom">
+          <span class="material-icons text-4xl mb-4">menu_book</span>
+          <p>No table of contents available</p>
+        </div>
+      </div>
+    `);
+    return;
+  }
+
+  // currentTutorialPath formatı: #tutorials/page-builder/overview
+  const basePath = currentTutorialPath || window.location.hash;
+
+  const tocHtml = `
+    <div class="p-6">
+      <h3 class="text-lg font-semibold text-gray-300-custom mb-4">In this article</h3>
+      <nav class="space-y-2">
+        ${headings
+          .map(
+            (heading) => `
+          <a href="${basePath}/${
+              heading.id
+            }" class="block text-sm text-gray-400-custom hover:text-gray-300-custom transition-colors py-1 toc-link ${
+              heading.level === 1
+                ? "font-medium"
+                : heading.level === 2
+                ? "ml-4"
+                : "ml-8"
+            }">
+            ${heading.title}
+          </a>
+        `
+          )
+          .join("")}
+      </nav>
     </div>
-  `);
+  `;
+
+  $("aside:last-child").html(tocHtml);
+
+  // TOC link click handler
+  $(document)
+    .off("click", ".toc-link")
+    .on("click", ".toc-link", function (e) {
+      e.preventDefault();
+      const href = $(this).attr("href");
+      const headingId = href.split("/").pop();
+
+      // Smooth scroll to heading
+      const targetElement = $(`#${headingId}`);
+      if (targetElement.length) {
+        $("html, body").animate(
+          {
+            scrollTop: targetElement.offset().top - 100,
+          },
+          500
+        );
+      }
+
+      // Update URL without page reload
+      window.history.pushState(null, null, href);
+    });
 }
 
 $(document).on("click", "a[href^='#tutorials/']", function (e) {
