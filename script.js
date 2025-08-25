@@ -106,11 +106,27 @@ function switchHighlightTheme(theme) {
     existingLink.remove();
   }
 
+  // Code blockları yeniden highlight et ve eski stilleri temizle
   setTimeout(() => {
     document.querySelectorAll("pre code").forEach((block) => {
+      // Eski highlight.js sınıflarını temizle
+      block.className = block.className.replace(/hljs[^\s]*/g, "");
+      block.classList.remove("hljs");
+
+      // Eski inline stilleri temizle
+      block.removeAttribute("data-highlighted");
+
+      // İçeriği yeniden highlight et
       hljs.highlightElement(block);
+
+      // Tutorial content için özel stilleri zorla uygula
+      if (block.closest(".tutorial-content")) {
+        block.style.background = "transparent";
+        block.style.padding = "0";
+        block.style.border = "none";
+      }
     });
-  }, 100);
+  }, 50);
 }
 
 /**
@@ -2799,12 +2815,17 @@ async function loadTutorials() {
 
       // Her md dosyası için link oluştur
       articles.forEach((article) => {
-        const articleDisplayName = article.name
-          .replace(/\.md$/, "")
-          .replace(/-/g, " ")
-          .split(" ")
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" ");
+        // Eğer title varsa kullan, yoksa dosya adından oluştur
+        const articleDisplayName =
+          article.title ||
+          article.name
+            .replace(/\.md$/, "")
+            .replace(/-/g, " ")
+            .split(" ")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ");
+
+        const tooltipText = article.description || articleDisplayName;
 
         sidebarHtml += `
           <li class="group">
@@ -2815,8 +2836,13 @@ async function loadTutorials() {
               <div class="flex items-center flex-1 min-w-0 gap-2">
                 <div class="tooltip w-40">
                   <span class="truncate block">${articleDisplayName}</span>
-                  <span class="tooltiptext">${articleDisplayName}</span>
+                  <span class="tooltiptext">${tooltipText}</span>
                 </div>
+              </div>
+              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span class="material-icons text-gray-400-custom cursor-pointer copy-icon text-sm" 
+                      onclick="event.stopPropagation(); copyToClipboard('${articleDisplayName}')" 
+                      title="Copy article name">content_copy</span>
               </div>
             </a>
           </li>
@@ -2872,51 +2898,63 @@ async function loadTutorials() {
 
 // Tutorials klasör yapısını yükle
 async function loadTutorialStructure() {
-  const structure = {};
-
   try {
-    // Bilinen klasörleri kontrol et
-    const knownFolders = ["architectural", "page-builder"];
+    // tutorial.js dosyasından veri yükle
+    const response = await fetch("./tutorial.js");
+    const jsContent = await response.text();
 
-    for (const folder of knownFolders) {
-      try {
-        // Klasördeki md dosyalarını kontrol et
-        const articles = [];
+    // tutorial.js içeriğini eval ile çalıştır (güvenli ortamda)
+    const tutorialsFunction = new Function(jsContent + "; return tutorials;");
+    const tutorialsData = tutorialsFunction();
 
-        // Bilinen md dosyalarını kontrol et
-        const possibleFiles = [
-          "overview.md",
-          "getting-started.md",
-          "advanced.md",
-          "configuration.md",
-        ];
+    // Veriyi bizim format'a çevir
+    const structure = {};
 
-        for (const file of possibleFiles) {
-          try {
-            const response = await fetch(`./tutorials/${folder}/${file}`);
-            if (response.ok) {
-              articles.push({
-                name: file,
-                path: `tutorials/${folder}/${file}`,
-              });
-            }
-          } catch (e) {
-            // Dosya yoksa devam et
-          }
-        }
+    tutorialsData.forEach((category) => {
+      const folderName = category.title.toLowerCase().replace(/\s+/g, "-");
 
-        if (articles.length > 0) {
-          structure[folder] = articles;
-        }
-      } catch (e) {
-        // Klasör yoksa devam et
-      }
-    }
+      structure[folderName] = category.articles.map((article) => ({
+        name: article.url.split("/").pop() + ".md",
+        path: `tutorials${article.url}.md`,
+        title: article.title,
+        description: article.description,
+      }));
+    });
+
+    console.log("Tutorial structure loaded from tutorial.js:", structure);
+    return structure;
   } catch (error) {
-    console.error("Error scanning tutorial structure:", error);
-  }
+    console.error(
+      "Error loading tutorial.js, falling back to manual structure:",
+      error
+    );
 
-  return structure;
+    // Fallback: manuel yapı
+    return {
+      architectural: [
+        {
+          name: "overview.md",
+          path: "tutorials/architectural/overview.md",
+          title: "Overview",
+          description: "Architectural overview",
+        },
+      ],
+      "page-builder": [
+        {
+          name: "render_intro.md",
+          path: "tutorials/page-builder/render_intro.md",
+          title: "Render Introspection",
+          description: "Render Introspection",
+        },
+        {
+          name: "sections_intro.md",
+          path: "tutorials/page-builder/sections_intro.md",
+          title: "Section Intro",
+          description: "Section Intro",
+        },
+      ],
+    };
+  }
 }
 
 async function loadTutorialContent(clickedId) {
@@ -2952,6 +2990,15 @@ async function loadTutorialContent(clickedId) {
         ${htmlContent}
       </article>
     `);
+
+    // Syntax highlighting uygula
+    setTimeout(() => {
+      document.querySelectorAll("pre code").forEach((block) => {
+        if (!block.classList.contains("hljs")) {
+          hljs.highlightElement(block);
+        }
+      });
+    }, 100);
 
     // Table of contents oluştur - current path'i geç
     const currentPath = `#tutorials/${folder}/${articleName}`;
@@ -3000,70 +3047,191 @@ async function loadTutorialContent(clickedId) {
   }
 }
 
-// Markdown'ı HTML'e çeviren basit fonksiyon
+// Markdown'ı HTML'e çeviren gelişmiş fonksiyon
 function convertMarkdownToHTML(markdown) {
-  let html = markdown
-    // Headers
-    .replace(
-      /^### (.*$)/gim,
-      '<h3 id="$1" class="text-xl font-semibold mt-8 mb-4 text-gray-200">$1</h3>'
-    )
-    .replace(
-      /^## (.*$)/gim,
-      '<h2 id="$1" class="text-2xl font-semibold mt-10 mb-6 text-gray-100">$1</h2>'
-    )
-    .replace(
-      /^# (.*$)/gim,
-      '<h1 id="$1" class="text-3xl font-bold mt-12 mb-8 text-white">$1</h1>'
-    )
+  // Önce satırlara böl
+  const lines = markdown.split("\n");
+  let html = "";
+  let inCodeBlock = false;
+  let inList = false;
+  let currentParagraph = "";
 
-    // Bold and italic
-    .replace(
-      /\*\*(.*?)\*\*/gim,
-      '<strong class="font-semibold text-gray-200">$1</strong>'
-    )
-    .replace(/\*(.*?)\*/gim, '<em class="italic text-gray-300">$1</em>')
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmedLine = line.trim();
 
-    // Code blocks
-    .replace(
-      /```([\s\S]*?)```/gim,
-      '<pre class="bg-gray-900 rounded-lg p-4 overflow-x-auto my-4"><code class="text-gray-300">$1</code></pre>'
-    )
-    .replace(
-      /`([^`]*)`/gim,
-      '<code class="bg-gray-800 text-gray-300 px-2 py-1 rounded text-sm">$1</code>'
-    )
+    // Code block kontrolü
+    if (trimmedLine.startsWith("```")) {
+      if (inCodeBlock) {
+        // Code block bitir - syntax highlighting ekle
+        html += "</code></pre>";
+        inCodeBlock = false;
+
+        // Syntax highlighting uygula
+        setTimeout(() => {
+          document.querySelectorAll("pre code").forEach((block) => {
+            if (!block.classList.contains("hljs")) {
+              hljs.highlightElement(block);
+            }
+          });
+        }, 100);
+      } else {
+        // Paragraph varsa kapat
+        if (currentParagraph) {
+          html += processInlineElements(currentParagraph) + "</p>";
+          currentParagraph = "";
+        }
+
+        // Code block başlat
+        const language = trimmedLine.slice(3).trim() || "plaintext";
+        html += `<pre class="bg-gray-900 rounded-lg p-4 overflow-x-auto my-4 border border-gray-700"><code class="language-${language}">`;
+        inCodeBlock = true;
+      }
+      continue;
+    }
+
+    // Code block içindeyse direkt ekle (HTML escape)
+    if (inCodeBlock) {
+      const escapedLine = line
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+      html += escapedLine + "\n";
+      continue;
+    }
+
+    // Headers (H1-H6)
+    const headerMatch = trimmedLine.match(/^(#{1,6})\s+(.+)$/);
+    if (headerMatch) {
+      // Paragraph varsa kapat
+      if (currentParagraph) {
+        html += processInlineElements(currentParagraph) + "</p>";
+        currentParagraph = "";
+      }
+
+      const level = headerMatch[1].length;
+      const title = headerMatch[2];
+      const id = createHeaderId(title);
+
+      const headerClasses = {
+        1: "text-3xl font-bold mt-12 mb-8 text-white",
+        2: "text-2xl font-semibold mt-10 mb-6 text-gray-100",
+        3: "text-xl font-semibold mt-8 mb-4 text-gray-200",
+        4: "text-lg font-semibold mt-6 mb-3 text-gray-200",
+        5: "text-base font-semibold mt-4 mb-2 text-gray-300",
+        6: "text-sm font-semibold mt-3 mb-2 text-gray-300",
+      };
+
+      html += `<h${level} id="${id}" class="${headerClasses[level]}">${title}</h${level}>`;
+      continue;
+    }
 
     // Lists
-    .replace(/^\- (.*$)/gim, '<li class="ml-4 mb-2 text-gray-300">• $1</li>')
-    .replace(/^\* (.*$)/gim, '<li class="ml-4 mb-2 text-gray-300">• $1</li>')
+    const listMatch = trimmedLine.match(/^[-*+]\s+(.+)$/);
+    if (listMatch) {
+      // Paragraph varsa kapat
+      if (currentParagraph) {
+        html += processInlineElements(currentParagraph) + "</p>";
+        currentParagraph = "";
+      }
 
-    // Links
-    .replace(
-      /\[([^\]]*)\]\(([^\)]*)\)/gim,
-      '<a href="$2" class="text-blue-400 hover:text-blue-300 underline">$1</a>'
-    )
+      if (!inList) {
+        html += '<ul class="list-disc ml-6 mb-4 space-y-1">';
+        inList = true;
+      }
+      html += `<li class="text-gray-300">${processInlineElements(
+        listMatch[1]
+      )}</li>`;
+      continue;
+    } else if (inList) {
+      html += "</ul>";
+      inList = false;
+    }
 
     // Block quotes
-    .replace(
-      /^> (.*$)/gim,
-      '<blockquote class="border-l-4 border-blue-500 pl-4 italic text-gray-400 my-4">$1</blockquote>'
-    )
+    if (trimmedLine.startsWith("> ")) {
+      // Paragraph varsa kapat
+      if (currentParagraph) {
+        html += processInlineElements(currentParagraph) + "</p>";
+        currentParagraph = "";
+      }
 
-    // Paragraphs
-    .replace(/\n\n/gim, '</p><p class="mb-4 text-gray-300 leading-relaxed">')
-    .replace(/\n/gim, "<br>");
+      html += `<blockquote class="border-l-4 border-blue-500 pl-4 italic text-gray-400 my-4">${processInlineElements(
+        trimmedLine.slice(2)
+      )}</blockquote>`;
+      continue;
+    }
 
-  // Wrap in paragraphs
-  html = '<p class="mb-4 text-gray-300 leading-relaxed">' + html + "</p>";
+    // Boş satır - paragraph ayırıcı
+    if (trimmedLine === "") {
+      if (currentParagraph) {
+        html += processInlineElements(currentParagraph) + "</p>";
+        currentParagraph = "";
+      }
+      continue;
+    }
 
-  // Clean up empty paragraphs
-  html = html.replace(
-    /<p class="mb-4 text-gray-300 leading-relaxed"><\/p>/gim,
-    ""
-  );
+    // Normal metin - paragraph'a ekle
+    if (currentParagraph) {
+      currentParagraph += " " + trimmedLine;
+    } else {
+      currentParagraph =
+        '<p class="mb-4 text-gray-300 leading-relaxed">' + trimmedLine;
+    }
+  }
+
+  // Son paragraph'ı kapat
+  if (currentParagraph) {
+    html += processInlineElements(currentParagraph) + "</p>";
+  }
+
+  // Son liste'yi kapat
+  if (inList) {
+    html += "</ul>";
+  }
+
+  // Son code block'u kapat
+  if (inCodeBlock) {
+    html += "</code></pre>";
+  }
 
   return html;
+}
+
+// Inline elementleri işle (bold, italic, code, links)
+function processInlineElements(text) {
+  return (
+    text
+      // Bold
+      .replace(
+        /\*\*(.*?)\*\*/g,
+        '<strong class="font-semibold text-gray-200">$1</strong>'
+      )
+      // Italic
+      .replace(/\*(.*?)\*/g, '<em class="italic text-gray-300">$1</em>')
+      // Inline code
+      .replace(
+        /`([^`]+)`/g,
+        '<code class="bg-gray-800 text-gray-300 px-2 py-1 rounded text-sm">$1</code>'
+      )
+      // Links
+      .replace(
+        /\[([^\]]*)\]\(([^\)]*)\)/g,
+        '<a href="$2" class="text-blue-400 hover:text-blue-300 underline">$1</a>'
+      )
+  );
+}
+
+// Header ID oluştur (URL-safe)
+function createHeaderId(title) {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "") // Özel karakterleri kaldır
+    .replace(/\s+/g, "-") // Boşlukları tire yap
+    .replace(/-+/g, "-") // Çoklu tireleri tek tire yap
+    .replace(/^-|-$/g, ""); // Başındaki ve sonundaki tireleri kaldır
 }
 
 // Table of contents oluştur
@@ -3072,13 +3240,11 @@ function generateTableOfContents(markdown, currentTutorialPath) {
   const lines = markdown.split("\n");
 
   lines.forEach((line, index) => {
-    if (line.match(/^#{1,3} /)) {
-      const level = (line.match(/^#+/) || [""])[0].length;
-      const title = line.replace(/^#+\s*/, "");
-      const id = title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+    const headerMatch = line.trim().match(/^(#{1,6})\s+(.+)$/);
+    if (headerMatch) {
+      const level = headerMatch[1].length;
+      const title = headerMatch[2];
+      const id = createHeaderId(title); // Aynı ID creation fonksiyonunu kullan
 
       headings.push({
         level: level,

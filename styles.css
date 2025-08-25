@@ -201,6 +201,62 @@ header {
   padding: 1rem;
   overflow-x: auto;
   margin: 1.5rem 0;
+  position: relative;
+  line-height: 1.5;
+}
+
+.tutorial-content pre code {
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Syntax highlighting improvements */
+.tutorial-content .hljs,
+.tutorial-content pre code {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #e5e7eb !important;
+}
+
+/* Force remove any hljs background */
+.tutorial-content .hljs * {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.tutorial-content .hljs-keyword {
+  color: #f472b6;
+  font-weight: 500;
+}
+
+.tutorial-content .hljs-string {
+  color: #34d399;
+}
+
+.tutorial-content .hljs-number {
+  color: #fbbf24;
+}
+
+.tutorial-content .hljs-comment {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.tutorial-content .hljs-function {
+  color: #60a5fa;
+}
+
+.tutorial-content .hljs-variable {
+  color: #e5e7eb;
+}
+
+.tutorial-content .hljs-title {
+  color: #a78bfa;
+  font-weight: 600;
 }
 
 .tutorial-content code {
@@ -295,6 +351,18 @@ header {
   color: #374151;
 }
 
+[data-theme="light"] .tutorial-content h4 {
+  color: #374151;
+}
+
+[data-theme="light"] .tutorial-content h5 {
+  color: #374151;
+}
+
+[data-theme="light"] .tutorial-content h6 {
+  color: #374151;
+}
+
 [data-theme="light"] .tutorial-content p {
   color: #4b5563;
 }
@@ -315,6 +383,51 @@ header {
   background-color: #f9fafb;
   border-color: #e5e7eb;
   color: #374151;
+}
+
+/* Light mode syntax highlighting */
+[data-theme="light"] .tutorial-content .hljs,
+[data-theme="light"] .tutorial-content pre code {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #374151 !important;
+}
+
+/* Force remove any hljs background in light mode */
+[data-theme="light"] .tutorial-content .hljs * {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+[data-theme="light"] .tutorial-content .hljs-keyword {
+  color: #be185d;
+  font-weight: 500;
+}
+
+[data-theme="light"] .tutorial-content .hljs-string {
+  color: #059669;
+}
+
+[data-theme="light"] .tutorial-content .hljs-number {
+  color: #d97706;
+}
+
+[data-theme="light"] .tutorial-content .hljs-comment {
+  color: #6b7280;
+  font-style: italic;
+}
+
+[data-theme="light"] .tutorial-content .hljs-function {
+  color: #2563eb;
+}
+
+[data-theme="light"] .tutorial-content .hljs-variable {
+  color: #374151;
+}
+
+[data-theme="light"] .tutorial-content .hljs-title {
+  color: #7c3aed;
+  font-weight: 600;
 }
 
 [data-theme="light"] .tutorial-content :not(pre) > code {
