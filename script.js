@@ -1692,8 +1692,9 @@ function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
 
     // Generate select options
     schema.anyOf.forEach((subSchema, index) => {
+      const optionTitle = getSchemaTitle(subSchema) || `Option ${index + 1}`;
       html += `<option value="${index}" ${index === 0 ? "selected" : ""}>
-        Option ${index + 1} (${getSchemaType(subSchema)})
+        ${optionTitle} (${getSchemaType(subSchema)})
       </option>`;
     });
 
@@ -1735,7 +1736,7 @@ function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
             <span class="property-type">union</span>
           </div>
         </div>
-        <div class="property-description">Exactly one of the following schemas</div>
+        <div class="property-description">Choose one option</div>
       </div>
     </div>
     <div id="${propertyId}_oneof" class="nested-properties" style="display: none;">`;
@@ -1762,8 +1763,9 @@ function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
         html += `<div class="expand-button-spacer"></div>`;
       }
 
+      const optionTitle = getSchemaTitle(subSchema) || `Option ${index + 1}`;
       html += `<div class="property-info">
-              <div class="property-name">Option ${index + 1}</div>
+              <div class="property-name">${optionTitle}</div>
               <span class="property-type">${getSchemaType(subSchema)}</span>
             </div>
           </div>
@@ -1900,8 +1902,10 @@ function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
 
           // Generate select options
           prop.anyOf.forEach((subSchema, index) => {
+            const optionTitle =
+              getSchemaTitle(subSchema) || `Option ${index + 1}`;
             html += `<option value="${index}" ${index === 0 ? "selected" : ""}>
-              Option ${index + 1} (${getSchemaType(subSchema)})
+              ${optionTitle} (${getSchemaType(subSchema)})
             </option>`;
           });
 
@@ -1945,14 +1949,18 @@ function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
               html += `<div class="expand-button-spacer"></div>`;
             }
 
+            const optionTitle =
+              getSchemaTitle(subSchema) || `Option ${index + 1}`;
             html += `<div class="property-info">
-                    <div class="property-name">Option ${index + 1}</div>
+                    <div class="property-name">${optionTitle}</div>
                     <span class="property-type">${getSchemaType(
                       subSchema
                     )}</span>
                   </div>
                 </div>
-                <div class="property-description">Exactly one of the possible schemas</div>
+                <div class="property-description">${
+                  getSchemaDescription(subSchema) || "Schema option"
+                }</div>
               </div>
             </div>`;
 
@@ -1992,13 +2000,17 @@ function renderSchemaTreeView(schema, depth = 0, propertyId = "root") {
             }
 
             html += `<div class="property-info">
-                    <div class="property-name">Schema ${index + 1}</div>
+                    <div class="property-name">${
+                      getSchemaTitle(subSchema) || `Schema ${index + 1}`
+                    }</div>
                     <span class="property-type">${getSchemaType(
                       subSchema
                     )}</span>
                   </div>
                 </div>
-                <div class="property-description">All of the schemas must match</div>
+                <div class="property-description">${
+                  getSchemaDescription(subSchema) || "Required schema"
+                }</div>
               </div>
             </div>`;
 
@@ -2675,6 +2687,52 @@ function updateActiveSidebarItem(path, method) {
 }
 
 /**
+ * Get schema title for display
+ */
+function getSchemaTitle(schema) {
+  if (!schema) return null;
+
+  // Check for title property
+  if (schema.title) return schema.title;
+
+  // Check for properties and return first property name if object
+  if (schema.type === "object" && schema.properties) {
+    const firstProp = Object.keys(schema.properties)[0];
+    if (firstProp) return `${firstProp} (and others)`;
+  }
+
+  // Check for items if array
+  if (schema.type === "array" && schema.items) {
+    const itemTitle = getSchemaTitle(schema.items);
+    return itemTitle ? `Array of ${itemTitle}` : "Array";
+  }
+
+  return null;
+}
+
+/**
+ * Get schema description for display
+ */
+function getSchemaDescription(schema) {
+  if (!schema) return null;
+
+  // Return schema description if available
+  if (schema.description) return schema.description;
+
+  // Generate description based on type
+  if (schema.type === "object" && schema.properties) {
+    const propCount = Object.keys(schema.properties).length;
+    return `Object with ${propCount} propert${propCount === 1 ? "y" : "ies"}`;
+  }
+
+  if (schema.type === "array") {
+    return "Array of items";
+  }
+
+  return null;
+}
+
+/**
  * Get dynamic authorization description based on security scheme
  */
 function getAuthDescription(scheme) {
@@ -2702,6 +2760,53 @@ function createEndpointHash(endpoint) {
   // Format: GET-api-dashboard-address-paginate-userId
   const pathHash = endpoint.path.replace(/[^a-zA-Z0-9]/g, "-");
   return `${endpoint.method}-${pathHash}`;
+}
+
+/**
+ * Load first tutorial automatically
+ */
+function loadFirstTutorial(tutorialStructure) {
+  // URL'de zaten tutorial varsa yüklenmesin
+  const hash = window.location.hash.substring(1);
+  if (hash && hash.startsWith("tutorials/")) return;
+
+  if (!tutorialStructure) return;
+
+  const folders = Object.keys(tutorialStructure);
+  if (folders.length === 0) return;
+
+  // İlk klasör ve ilk makaleyi al
+  const firstFolder = folders[0];
+  const articles = tutorialStructure[firstFolder];
+  if (!articles || articles.length === 0) return;
+
+  const firstArticle = articles[0];
+  if (!firstArticle) return;
+
+  // Tutorial URL'ini oluştur
+  const articleName = firstArticle.name.replace(".md", "");
+  const tutorialPath = `#tutorials/${firstFolder}/${articleName}`;
+
+  // İlk tutorial'ı yükle
+  loadTutorialContent(tutorialPath);
+
+  // Sidebar'da aktif duruma getir
+  const articleLink = $(`a[href="${tutorialPath}"]`);
+  if (articleLink.length) {
+    // Accordion'ı aç
+    const accordionContent = articleLink.closest(".accordion-content");
+    const accordionToggle = accordionContent.prev(".accordion-toggle");
+
+    accordionContent.show();
+    accordionToggle.find(".material-icons").text("expand_more");
+
+    // Makaleyi aktif yap
+    $(".endpoint-link").removeClass("nav-link active");
+    articleLink.addClass("nav-link active");
+  }
+
+  // URL'i güncelle
+  window.history.replaceState(null, "", tutorialPath);
 }
 
 /**
@@ -2817,7 +2922,8 @@ window.addEventListener("popstate", function (event) {
   }
 });
 
-$(document).on("click", "#tutorials-link", function () {
+// Desktop ve mobile tutorials nav linklerini handle et
+$(document).on("click", "#tutorials-nav, #tutorials-nav-mobile", function () {
   feature = "tutorials";
   loadTutorials();
 });
@@ -2888,6 +2994,9 @@ async function loadTutorials() {
 
     sidebarHtml += `</ul></div>`;
     mainSidebar.html(sidebarHtml);
+
+    // İlk tutorial'ı otomatik yükle (eğer URL'de belirtilmemişse)
+    loadFirstTutorial(tutorialStructure);
 
     // Accordion toggle handler ekle - event delegation kullan
     $(document)
@@ -3101,6 +3210,8 @@ function convertMarkdownToHTML(markdown) {
   let html = "";
   let inCodeBlock = false;
   let inList = false;
+  let inTable = false;
+  let tableHeaders = [];
   let currentParagraph = "";
 
   for (let i = 0; i < lines.length; i++) {
@@ -3197,6 +3308,54 @@ function convertMarkdownToHTML(markdown) {
       inList = false;
     }
 
+    // Table detection
+    const tableRowMatch = trimmedLine.match(/^\|(.+)\|$/);
+    const tableSeparatorMatch = trimmedLine.match(/^\|[\s:|-]+\|$/);
+
+    if (tableRowMatch && !inCodeBlock) {
+      // Paragraph varsa kapat
+      if (currentParagraph) {
+        html += processInlineElements(currentParagraph) + "</p>";
+        currentParagraph = "";
+      }
+
+      const cells = tableRowMatch[1].split("|").map((cell) => cell.trim());
+
+      // İlk tablo satırı (header)
+      if (!inTable) {
+        tableHeaders = cells;
+        html += '<div class="table-responsive"><table><thead><tr>';
+        cells.forEach((cell) => {
+          html += `<th>${processInlineElements(cell)}</th>`;
+        });
+        html += "</tr></thead>";
+        inTable = true;
+        continue;
+      }
+
+      // Separator satırını atla (|:---|:---:|---:|)
+      if (tableSeparatorMatch) {
+        html += "<tbody>";
+        continue;
+      }
+
+      // Normal tablo satırı
+      if (!html.includes("<tbody>")) {
+        html += "<tbody>";
+      }
+      html += "<tr>";
+      cells.forEach((cell) => {
+        html += `<td>${processInlineElements(cell)}</td>`;
+      });
+      html += "</tr>";
+      continue;
+    } else if (inTable && !tableRowMatch) {
+      // Tablo sonu
+      html += "</tbody></table></div>";
+      inTable = false;
+      tableHeaders = [];
+    }
+
     // Block quotes
     if (trimmedLine.startsWith("> ")) {
       // Paragraph varsa kapat
@@ -3237,6 +3396,11 @@ function convertMarkdownToHTML(markdown) {
   // Son liste'yi kapat
   if (inList) {
     html += "</ul>";
+  }
+
+  // Son tablo'yu kapat
+  if (inTable) {
+    html += "</tbody></table></div>";
   }
 
   // Son code block'u kapat
