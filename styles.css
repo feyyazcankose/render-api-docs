@@ -115,9 +115,13 @@ header {
   background-color: var(--bg-secondary);
   /* border-bottom: 1px solid var(--border-primary); */
   position: relative;
-  z-index: 1000;
+  z-index: 1001;
   width: 100%;
   border-bottom: 0.5px solid var(--border-header);
+}
+
+#main-sidebar {
+  z-index: 1003 !important;
 }
 
 header nav a {
@@ -594,8 +598,164 @@ textarea {
   background-color: #2563eb;
 }
 
+/* Mobile Drawer Styles */
+.mobile-drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.mobile-drawer-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.hamburger-menu {
+  display: none;
+  flex-direction: column;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.hamburger-menu:hover {
+  background-color: var(--bg-hover);
+}
+
+.hamburger-line {
+  width: 20px;
+  height: 2px;
+  background-color: var(--text-tertiary);
+  margin: 2px 0;
+  transition: 0.3s;
+  border-radius: 2px;
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(1) {
+  transform: rotate(-45deg) translate(-5px, 6px);
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(3) {
+  transform: rotate(45deg) translate(-5px, -6px);
+}
+
+/* Mobile dropdown menu styles */
+.mobile-menu-dropdown {
+  display: none;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 8px 0;
+  min-width: 180px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+  z-index: 1002;
+}
+
+.dropdown-menu.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-item {
+  display: block;
+  padding: 10px 16px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: var(--border-primary);
+  margin: 8px 0;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
+  /* Show hamburger menu on mobile */
+  .hamburger-menu {
+    display: flex;
+  }
+
+  /* Show mobile dropdown menu on mobile */
+  .mobile-menu-dropdown {
+    display: block !important;
+  }
+
+  /* Hide navigation text on mobile */
+  .desktop-nav {
+    display: none !important;
+  }
+
+  #bottom-navigation {
+    flex-direction: column !important;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Transform sidebar to drawer on mobile */
+  aside:first-child {
+    position: fixed !important;
+    top: 0;
+    left: -100%;
+    height: 100vh;
+    width: 280px;
+    z-index: 1000;
+    transition: left 0.3s ease;
+    padding-top: 80px;
+    border-right: 1px solid var(--border-primary);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  }
+
+  aside:first-child.drawer-open {
+    left: 0;
+  }
+
+  /* Adjust main content on mobile */
+  main {
+    width: 100% !important;
+    margin-left: 0 !important;
+    z-index: 1 !important;
+  }
+
+  /* Hide code examples sidebar on mobile */
+  aside:last-child {
+    display: none !important;
+  }
+
   .api-endpoint {
     flex-direction: column;
     align-items: flex-start;
@@ -613,6 +773,59 @@ textarea {
 
   .code-content {
     font-size: 0.75rem;
+  }
+
+  /* Drawer close button */
+  .drawer-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .drawer-close:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  /* Mobile code examples section */
+  .mobile-code-examples {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-primary);
+    display: block;
+  }
+
+  .mobile-code-examples h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-accent);
+  }
+
+  .mobile-code-examples .code-block {
+    margin-bottom: 1.5rem;
+  }
+
+  .mobile-code-examples pre {
+    font-size: 0.875rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+  }
+}
+
+/* Hide mobile code examples on desktop */
+@media (min-width: 769px) {
+  .mobile-code-examples {
+    display: none !important;
   }
 }
 

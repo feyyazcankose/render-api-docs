@@ -14,6 +14,7 @@ let currentEndpointIndex = -1; // Current position in the endpoints array
  */
 $(document).ready(function () {
   initializeTheme();
+  initializeMobileDrawer();
   loadSwaggerData();
 });
 
@@ -73,6 +74,126 @@ function toggleTheme() {
   const currentTheme = document.documentElement.getAttribute("data-theme");
   const newTheme = currentTheme === "light" ? "dark" : "light";
   setTheme(newTheme);
+}
+
+/**
+ * Initialize mobile drawer functionality
+ */
+function initializeMobileDrawer() {
+  // Hamburger menu toggle
+  $("#mobile-drawer-toggle").on("click", function () {
+    toggleDrawer();
+  });
+
+  // Drawer close button
+  $("#drawer-close").on("click", function () {
+    closeDrawer();
+  });
+
+  // Overlay click to close
+  $("#mobile-drawer-overlay").on("click", function () {
+    closeDrawer();
+  });
+
+  // Mobile dropdown menu toggle
+  $("#mobile-menu-toggle").on("click", function (e) {
+    e.stopPropagation();
+    toggleMobileDropdown();
+  });
+
+  // Close dropdown when clicking outside
+  $(document).on("click", function (e) {
+    if (!$(e.target).closest(".mobile-menu-dropdown").length) {
+      closeMobileDropdown();
+    }
+  });
+
+  // Close drawer when window is resized to desktop
+  $(window).on("resize", function () {
+    if ($(window).width() > 768) {
+      closeDrawer();
+      closeMobileDropdown();
+    }
+  });
+
+  // Show/hide close button based on screen size
+  updateDrawerElements();
+  $(window).on("resize", updateDrawerElements);
+}
+
+/**
+ * Toggle drawer open/close
+ */
+function toggleDrawer() {
+  const sidebar = $("#main-sidebar");
+  const overlay = $("#mobile-drawer-overlay");
+  const hamburger = $("#mobile-drawer-toggle");
+
+  if (sidebar.hasClass("drawer-open")) {
+    closeDrawer();
+  } else {
+    openDrawer();
+  }
+}
+
+/**
+ * Open drawer
+ */
+function openDrawer() {
+  const sidebar = $("#main-sidebar");
+  const overlay = $("#mobile-drawer-overlay");
+  const hamburger = $("#mobile-drawer-toggle");
+
+  sidebar.addClass("drawer-open");
+  sidebar.removeClass("mt-6");
+  overlay.addClass("active");
+  hamburger.addClass("active");
+  $("body").css("overflow", "hidden");
+}
+
+/**
+ * Close drawer
+ */
+function closeDrawer() {
+  const sidebar = $("#main-sidebar");
+  const overlay = $("#mobile-drawer-overlay");
+  const hamburger = $("#mobile-drawer-toggle");
+
+  sidebar.removeClass("drawer-open");
+  sidebar.addClass("mt-6");
+  overlay.removeClass("active");
+  hamburger.removeClass("active");
+  $("body").css("overflow", "");
+}
+
+/**
+ * Update drawer elements visibility based on screen size
+ */
+function updateDrawerElements() {
+  const closeBtn = $("#drawer-close");
+
+  if ($(window).width() <= 768) {
+    closeBtn.show();
+  } else {
+    closeBtn.hide();
+    closeDrawer(); // Close drawer if switching to desktop
+  }
+}
+
+/**
+ * Toggle mobile dropdown menu
+ */
+function toggleMobileDropdown() {
+  const dropdown = $("#mobile-dropdown-menu");
+  dropdown.toggleClass("active");
+}
+
+/**
+ * Close mobile dropdown menu
+ */
+function closeMobileDropdown() {
+  const dropdown = $("#mobile-dropdown-menu");
+  dropdown.removeClass("active");
 }
 
 /**
@@ -235,6 +356,11 @@ function generateNavigation() {
 
     const path = $(this).data("path");
     const method = $(this).data("method");
+
+    // Close drawer on mobile when endpoint is selected
+    if ($(window).width() <= 768) {
+      closeDrawer();
+    }
 
     // Update URL hash with endpoint info
     const endpointHash = `${method.toUpperCase()}-${path.replace(
@@ -635,7 +761,7 @@ function renderEndpointDetails() {
     ${responsesHtml}
     
     <!-- Bottom Navigation -->
-    <div class="flex justify-between items-center mt-12 pt-8 border-t border-gray-700-custom">
+    <div id="bottom-navigation" class="flex justify-between items-center mt-12 pt-8 border-t border-gray-700-custom ">
       <button 
         class="nav-button nav-button-large ${
           currentEndpointIndex <= 0 ? "opacity-50 cursor-not-allowed" : ""
@@ -688,11 +814,23 @@ function renderEndpointDetails() {
         <span class="material-icons text-sm">chevron_right</span>
       </button>
     </div>
+    
+    <!-- Mobile Code Examples (Only visible on mobile) -->
+    <div class="mobile-code-examples">
+      <h3>Code Examples</h3>
+      <div id="mobile-code-content">
+        <!-- Code examples will be rendered here for mobile -->
+      </div>
+    </div>
   `;
 
   mainContent.html(html);
 
   generateTryItForm();
+
+  // Render code examples for both desktop sidebar and mobile inline
+  renderCodeExample();
+  renderMobileCodeExamples();
 
   // Re-attach event handlers
   $("#try-it-btn")
@@ -2047,6 +2185,76 @@ function generateSchemaExample(schema, visited = new Set()) {
 }
 
 /**
+ * Render mobile code examples
+ */
+function renderMobileCodeExamples() {
+  if (!currentEndpoint) return;
+
+  const path = currentEndpoint.path;
+  const method = currentEndpoint.method.toUpperCase();
+  const endpoint = currentEndpoint.data;
+
+  const mobileCodeContent = $("#mobile-code-content");
+  if (mobileCodeContent.length === 0) return;
+
+  const curlCommand = `curl --request ${method} \\
+  --url ${getBaseUrl()}${path} \\
+  --header 'Authorization: Bearer <token>' \\
+  --header 'Content-Type: application/json'`;
+
+  let responsesHtml = "";
+  if (endpoint.responses) {
+    responsesHtml = Object.keys(endpoint.responses)
+      .map((statusCode) => {
+        const response = endpoint.responses[statusCode];
+        const content =
+          response.content && response.content["application/json"];
+        const jsonContent = content
+          ? JSON.stringify(generateSchemaExample(content.schema), null, 2)
+          : "No content available";
+
+        return `
+          <div class="code-block">
+            <div class="flex justify-between items-center mb-2">
+              <h4 class="text-sm font-medium text-gray-300-custom">Response ${statusCode}</h4>
+              <button class="text-gray-400-custom hover:text-gray-300-custom" onclick="copyToClipboard('${jsonContent.replace(
+                /'/g,
+                "\\'"
+              )}')">
+                <span class="material-icons text-sm">content_copy</span>
+              </button>
+            </div>
+            <pre class="bg-gray-900-custom text-gray-300-custom rounded-lg overflow-x-auto"><code>${
+              hljs.highlight(jsonContent, { language: "json" }).value
+            }</code></pre>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  const mobileCodeHtml = `
+    <div class="space-y-4">
+      <div class="code-block">
+        <div class="flex justify-between items-center mb-2">
+          <h4 class="text-sm font-medium text-gray-300-custom">Request</h4>
+          <button class="text-gray-400-custom hover:text-gray-300-custom" onclick="copyToClipboard('${curlCommand.replace(
+            /'/g,
+            "\\'"
+          )}')">
+            <span class="material-icons text-sm">content_copy</span>
+          </button>
+        </div>
+        <pre class="bg-gray-900-custom text-gray-300-custom rounded-lg overflow-x-auto"><code class="language-bash">${curlCommand}</code></pre>
+      </div>
+      ${responsesHtml}
+    </div>
+  `;
+
+  mobileCodeContent.html(mobileCodeHtml);
+}
+
+/**
  * Render code example in sidebar
  */
 function renderCodeExample() {
@@ -2480,6 +2688,9 @@ function showApiOverview() {
       </div>
     </div>
   `);
+
+  // Clear mobile code examples
+  $("#mobile-code-content").empty();
 }
 
 /**
