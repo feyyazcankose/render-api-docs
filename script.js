@@ -2921,13 +2921,16 @@ async function loadTutorialStructure() {
 
 async function loadTutorialContent(clickedId) {
   try {
-    // clickedId formatı: #tutorials/page-builder/overview
+    // clickedId formatı: #tutorials/page-builder/overview veya #tutorials/page-builder/overview/heading-id
     // Bu formatı parse et
     const pathParts = clickedId.replace("#tutorials/", "").split("/");
-    if (pathParts.length !== 2) {
+
+    // Eğer 3 veya daha fazla part varsa (heading link), sadece ilk 2'sini kullan
+    if (pathParts.length < 2) {
       throw new Error("Invalid tutorial path format");
     }
 
+    // Sadece folder ve article name'i al, heading'i ignore et
     const [folder, articleName] = pathParts;
     const filePath = `./tutorials/${folder}/${articleName}.md`;
 
@@ -2953,6 +2956,22 @@ async function loadTutorialContent(clickedId) {
     // Table of contents oluştur - current path'i geç
     const currentPath = `#tutorials/${folder}/${articleName}`;
     generateTableOfContents(markdownContent, currentPath);
+
+    // Eğer URL'de heading varsa, o heading'e scroll yap
+    if (pathParts.length > 2) {
+      const headingId = pathParts.slice(2).join("-"); // heading id'yi al
+      setTimeout(() => {
+        const targetElement = $(`#${headingId}`);
+        if (targetElement.length) {
+          $("html, body").animate(
+            {
+              scrollTop: targetElement.offset().top - 100,
+            },
+            500
+          );
+        }
+      }, 300); // Content render edilmesi için kısa bekleme
+    }
   } catch (error) {
     console.error("Error loading tutorial:", error);
 
@@ -3117,6 +3136,8 @@ function generateTableOfContents(markdown, currentTutorialPath) {
     .off("click", ".toc-link")
     .on("click", ".toc-link", function (e) {
       e.preventDefault();
+      e.stopPropagation(); // Event bubbling'i durdur
+
       const href = $(this).attr("href");
       const headingId = href.split("/").pop();
 
@@ -3129,6 +3150,8 @@ function generateTableOfContents(markdown, currentTutorialPath) {
           },
           500
         );
+      } else {
+        console.warn(`Heading element not found: #${headingId}`);
       }
 
       // Update URL without page reload
@@ -3137,8 +3160,13 @@ function generateTableOfContents(markdown, currentTutorialPath) {
 }
 
 $(document).on("click", "a[href^='#tutorials/']", function (e) {
+  // TOC linklerini ignore et - sadece sidebar tutorial linklerini handle et
+  if ($(this).hasClass("toc-link")) {
+    return; // TOC link handler'ı zaten çalışıyor
+  }
+
   let clickedId = $(this).attr("href"); // tıklanan linkin id'sini al
-  console.log("Tıklanan id:", clickedId);
+  console.log("Tıklanan tutorial id:", clickedId);
 
   feature = "tutorials";
   loadTutorialContent(clickedId); // id'yi fonksiyona gönderebilirsin
