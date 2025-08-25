@@ -5,6 +5,8 @@
 
 // Global variables
 let swaggerData = null;
+let tutorialsData = null;
+let feature = "api-docs";
 let currentEndpoint = null;
 let allEndpoints = []; // Array to store all endpoints for navigation
 let currentEndpointIndex = -1; // Current position in the endpoints array
@@ -2719,4 +2721,67 @@ window.addEventListener("popstate", function (event) {
   } else if (swaggerData) {
     navigateToOverview();
   }
+});
+
+$(document).on("click", "#tutorials-link", function () {
+  feature = "tutorials";
+  loadTutorials();
+});
+
+function loadTutorials() {
+  const mainSidebar = $("#main-sidebar");
+  mainSidebar.html(`
+    <div>
+        <ul class="space-y-2 text-sm">
+          <li>
+            <a class="flex items-center px-3 py-1 rounded accordion-toggle cursor-pointer sidebar-item !justify-start text-gray-400-custom">
+              <span>Page Builder</span>
+              <span class="material-icons text-sm transform transition-transform ml-5">chevron_right</span>
+            </a>
+            <ul class="ml-4 mt-2 space-y-2 accordion-content" style="display: none;">
+             <li class="group">
+                  <a href="#tutorials/page-builder/overview" class="flex items-center justify-between px-3 py-1 rounded endpoint-link cursor-pointer sidebar-item gap-2">
+                    <div class="flex items-center flex-1 min-w-0 gap-2">
+                      <div class="tooltip w-40">
+                        <span class="truncate block">Overview</span>
+                        <span class="tooltiptext">Overview</span>
+                      </div>
+                    </div>
+                  </a>
+                </li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+  `);
+}
+
+function loadTutorialContent(clickedId) {
+  const mainContent = $("main");
+  mainContent.html(`
+    <div class="text-center py-16">
+      <h1 class="text-4xl font-bold text-gray-300-custom mb-6">Tutorial Content</h1>
+      <p class="text-gray-400-custom text-lg mb-8">
+        Welcome to the tutorial content. Select a tutorial from the sidebar to get started. ${clickedId}
+      </p>
+    </div>
+  `);
+
+  // Clear code examples sidebar
+  $("aside:last-child").html(`
+    <div class="text-center py-16">
+      <div class="text-gray-400-custom">
+        <span class="material-icons text-4xl mb-4">In this tutorial</span>
+        <p>In this tutorial</p>
+      </div>
+    </div>
+  `);
+}
+
+$(document).on("click", "a[href^='#tutorials/']", function (e) {
+  let clickedId = $(this).attr("href"); // tıklanan linkin id'sini al
+  console.log("Tıklanan id:", clickedId);
+
+  feature = "tutorials";
+  loadTutorialContent(clickedId); // id'yi fonksiyona gönderebilirsin
 });
