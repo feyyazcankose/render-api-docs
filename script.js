@@ -272,8 +272,8 @@ async function loadSwaggerData() {
     if (hash) {
       loadEndpointFromHash(hash);
     } else {
-      // Show overview page by default
-      navigateToOverview();
+      // Show first endpoint by default instead of overview
+      loadFirstEndpoint();
     }
   } catch (error) {
     console.error("Error loading swagger.json:", error);
@@ -989,7 +989,9 @@ function getAuthorizationHtml() {
             </div>
           
 
-            <p class="whitespace-pre-line mt-5">${`Bearer authentication header of the form <code ><span>Bearer token</span></code>, where <code ><span>token</span></code> is your auth token.`}</p>
+            <p class="whitespace-pre-line mt-5">${getAuthDescription(
+              scheme
+            )}</p>
           </section>
         `;
       } else if (scheme.type === "apiKey") {
@@ -1013,7 +1015,7 @@ function getAuthorizationHtml() {
                   </td>
                 </tr>
                 ${
-                  scheme.description.length > 0
+                  scheme.description && scheme.description.length > 0
                     ? `
                     <tr>
                       <td class="text-gray-400-custom pt-2 pb-4" colspan="4">
@@ -1025,6 +1027,10 @@ function getAuthorizationHtml() {
                 }
               </tbody>
             </table>
+            
+            <p class="whitespace-pre-line mt-5">${getAuthDescription(
+              scheme
+            )}</p>
           </section>
         `;
       }
@@ -2666,6 +2672,72 @@ function updateActiveSidebarItem(path, method) {
     .prev(".accordion-toggle")
     .find(".material-icons")
     .text("expand_more");
+}
+
+/**
+ * Get dynamic authorization description based on security scheme
+ */
+function getAuthDescription(scheme) {
+  if (!scheme) return "";
+
+  if (scheme.type === "http" && scheme.scheme === "bearer") {
+    const description = scheme.description || "JWT Bearer token";
+    const format = scheme.bearerFormat || "JWT";
+
+    return `${description}. Bearer authentication header of the form <code><span>Bearer token</span></code>, where <code><span>token</span></code> is your ${format} auth token.`;
+  } else if (scheme.type === "apiKey") {
+    const description = scheme.description || "API Key";
+    const location = scheme.in === "header" ? "header" : "query parameter";
+
+    return `${description}. Add your API key as a ${location} with the name <code><span>${scheme.name}</span></code>.`;
+  }
+
+  return scheme.description || "Authentication required.";
+}
+
+/**
+ * Create endpoint hash for URL
+ */
+function createEndpointHash(endpoint) {
+  // Format: GET-api-dashboard-address-paginate-userId
+  const pathHash = endpoint.path.replace(/[^a-zA-Z0-9]/g, "-");
+  return `${endpoint.method}-${pathHash}`;
+}
+
+/**
+ * Load first endpoint automatically
+ */
+function loadFirstEndpoint() {
+  if (!swaggerData || !swaggerData.paths) return;
+
+  const paths = Object.keys(swaggerData.paths);
+  if (paths.length === 0) return;
+
+  // Get first path and first method
+  const firstPath = paths[0];
+  const methods = Object.keys(swaggerData.paths[firstPath]);
+  if (methods.length === 0) return;
+
+  const firstMethod = methods[0];
+
+  // Load the endpoint directly
+  loadEndpoint(firstPath, firstMethod);
+
+  // Set active state in sidebar
+  $(`.endpoint-link[data-path="${firstPath}"][data-method="${firstMethod}"]`)
+    .addClass("nav-link active")
+    .closest(".accordion-content")
+    .show()
+    .prev(".accordion-toggle")
+    .find(".material-icons")
+    .text("expand_more");
+
+  // Update URL
+  const hash = createEndpointHash({
+    path: firstPath,
+    method: firstMethod.toUpperCase(),
+  });
+  window.history.replaceState(null, "", `#${hash}`);
 }
 
 /**
