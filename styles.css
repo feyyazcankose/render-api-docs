@@ -1,4 +1,9 @@
 /* API Documentation Styles */
+@font-face {
+  font-family: "GraphikWide";
+  src: url("fonts/GraphikWide-Semibold-Trial.woff") format("woff");
+  font-style: normal;
+}
 
 /* Theme Variables */
 :root {
