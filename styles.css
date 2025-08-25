@@ -131,6 +131,20 @@ header {
   color: #e5e7eb;
 }
 
+/* Highlight target animation for TOC links */
+.highlight-target {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border-left: 4px solid #3b82f6 !important;
+  padding-left: 16px !important;
+  transition: all 0.3s ease !important;
+  border-radius: 4px !important;
+}
+
+[data-theme="light"] .highlight-target {
+  background: rgba(59, 130, 246, 0.05) !important;
+  border-left: 4px solid #3b82f6 !important;
+}
+
 .tutorial-content h1,
 .tutorial-content h2,
 .tutorial-content h3,

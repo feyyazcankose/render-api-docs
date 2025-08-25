@@ -3010,12 +3010,25 @@ async function loadTutorialContent(clickedId) {
       setTimeout(() => {
         const targetElement = $(`#${headingId}`);
         if (targetElement.length) {
-          $("html, body").animate(
+          // Main container'ı scroll et
+          const mainContainer = $("main");
+          const targetOffset =
+            targetElement.offset().top -
+            mainContainer.offset().top +
+            mainContainer.scrollTop();
+
+          mainContainer.animate(
             {
-              scrollTop: targetElement.offset().top - 100,
+              scrollTop: targetOffset - 80,
             },
-            500
+            800
           );
+
+          // Highlight target temporarily
+          targetElement.addClass("highlight-target");
+          setTimeout(() => {
+            targetElement.removeClass("highlight-target");
+          }, 2000);
         }
       }, 300); // Content render edilmesi için kısa bekleme
     }
@@ -3297,32 +3310,92 @@ function generateTableOfContents(markdown, currentTutorialPath) {
 
   $("aside:last-child").html(tocHtml);
 
-  // TOC link click handler
-  $(document)
-    .off("click", ".toc-link")
-    .on("click", ".toc-link", function (e) {
-      e.preventDefault();
-      e.stopPropagation(); // Event bubbling'i durdur
+  // TOC link click handler - Direct event binding after HTML is set
+  setTimeout(() => {
+    $("aside:last-child .toc-link")
+      .off("click")
+      .on("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation(); // Event bubbling'i durdur
 
-      const href = $(this).attr("href");
-      const headingId = href.split("/").pop();
+        const href = $(this).attr("href");
+        console.log("TOC link clicked:", href); // Debug
 
-      // Smooth scroll to heading
-      const targetElement = $(`#${headingId}`);
-      if (targetElement.length) {
-        $("html, body").animate(
-          {
-            scrollTop: targetElement.offset().top - 100,
-          },
-          500
-        );
-      } else {
-        console.warn(`Heading element not found: #${headingId}`);
-      }
+        const headingId = href.split("/").pop();
+        console.log("Looking for heading ID:", headingId); // Debug
 
-      // Update URL without page reload
-      window.history.pushState(null, null, href);
-    });
+        // Smooth scroll to heading
+        const targetElement = $(`#${headingId}`);
+        console.log("Target element found:", targetElement.length > 0); // Debug
+
+        if (targetElement.length) {
+          console.log("Scrolling to:", targetElement.offset().top - 100); // Debug
+
+          // Main container'ı scroll et
+          const mainContainer = $("main");
+          const targetOffset =
+            targetElement.offset().top -
+            mainContainer.offset().top +
+            mainContainer.scrollTop();
+
+          mainContainer.animate(
+            {
+              scrollTop: targetOffset - 80, // Header için margin
+            },
+            800, // Smooth scroll
+            "swing" // jQuery default easing
+          );
+
+          // Highlight target temporarily
+          targetElement.addClass("highlight-target");
+          setTimeout(() => {
+            targetElement.removeClass("highlight-target");
+          }, 2000);
+        } else {
+          console.warn(`Heading element not found: #${headingId}`);
+          // Alternatif: data-id attribute ile dene
+          const altTarget = $(`[data-id="${headingId}"]`);
+          if (altTarget.length) {
+            console.log("Found via data-id, scrolling..."); // Debug
+            const mainContainer = $("main");
+            const altTargetOffset =
+              altTarget.offset().top -
+              mainContainer.offset().top +
+              mainContainer.scrollTop();
+
+            mainContainer.animate(
+              {
+                scrollTop: altTargetOffset - 80,
+              },
+              800
+            );
+          } else {
+            // Son çare: text content ile ara
+            const textTarget = $(
+              `h1:contains("${headingId}"), h2:contains("${headingId}"), h3:contains("${headingId}"), h4:contains("${headingId}"), h5:contains("${headingId}"), h6:contains("${headingId}")`
+            );
+            if (textTarget.length) {
+              console.log("Found via text content, scrolling..."); // Debug
+              const mainContainer = $("main");
+              const textTargetOffset =
+                textTarget.first().offset().top -
+                mainContainer.offset().top +
+                mainContainer.scrollTop();
+
+              mainContainer.animate(
+                {
+                  scrollTop: textTargetOffset - 80,
+                },
+                800
+              );
+            }
+          }
+        }
+
+        // Update URL without page reload
+        window.history.pushState(null, null, href);
+      });
+  }, 100); // TOC HTML render edilmesi için kısa bekleme
 }
 
 $(document).on("click", "a[href^='#tutorials/']", function (e) {
