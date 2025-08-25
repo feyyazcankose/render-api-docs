@@ -2697,45 +2697,7 @@ function showApiOverview() {
       <p class="text-gray-400-custom text-lg mb-8">
         Welcome to the API documentation. Select an endpoint from the sidebar to get started.
       </p>
-      <div class="overview-grid">
-        ${Object.keys(getEndpointsByTag())
-          .map(
-            (tag) => `
-          <div class="overview-card">
-            <h3>${tag}</h3>
-            <p>
-              ${getEndpointsByTag()[tag].length} endpoint${
-              getEndpointsByTag()[tag].length !== 1 ? "s" : ""
-            }
-            </p>
-            <div class="flex flex-wrap gap-2">
-              ${getEndpointsByTag()
-                [tag].slice(0, 3)
-                .map(
-                  (endpoint) => `
-                <span class="method-badge bg-${getMethodColor(
-                  endpoint.method
-                )}-500 text-white">
-                  ${getMethodDisplayName(endpoint.method)}
-                </span>
-              `
-                )
-                .join("")}
-              ${
-                getEndpointsByTag()[tag].length > 3
-                  ? `
-                <span class="text-gray-400-custom text-xs">+${
-                  getEndpointsByTag()[tag].length - 3
-                } more</span>
-              `
-                  : ""
-              }
-            </div>
-          </div>
-        `
-          )
-          .join("")}
-      </div>
+      
     </div>
   `;
 
